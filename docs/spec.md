@@ -158,7 +158,7 @@ Every default below is a proposal pending Haakon's decision, unless marked **Dec
 
 | Case | Proposed default |
 | --- | --- |
-| Ambiguous measure (KPI vs KPI-JAE) | **Decided (D4):** when a claim has two valid readings and the text gives too little context to choose, show both official figures side by side and explain in plain words what each one measures. Label ambiguous\_measure. Verdict and exit code for this case: see D4 in docs/decisions.md. |
+| Ambiguous measure (KPI vs KPI-JAE) | **Decided (D4):** when a claim has two valid readings and the text gives too little context to choose, show both official figures side by side and explain in plain words what each one measures. Label ambiguous\_measure. Verdict: matched if either reading matches, mismatched if neither (D5). |
 | Unemployment (AKU vs NAV registered) | Outside the three MVP indicators. Report as out\_of\_scope and name it. The ambiguity rule above applies once the indicator is added. |
 | Revisions and vintage | Compare against the latest published value and record retrieved\_at. First-published vintage is a later feature. |
 | Forecasts | Future tense, forecast verbs ("venter", "anslår", "expects") or a future period give status forecast and verdict cannot\_verify with label forecast\_not\_checkable. |

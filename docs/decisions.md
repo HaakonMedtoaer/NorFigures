@@ -11,6 +11,7 @@ calls listed here. Status is **decided** or **pending**.
 | D2 | 2026-11 | Name NorFigures, MIT licence, English README with a Norwegian summary. | Spec section 16. | Haakon |
 | D3 | 2026-11-14 | Exit codes 0 / 1 / 2 / 3 as in spec section 5; "nothing checked" exits 2. | A silent pass is the worst failure. | Haakon |
 | D4 | 2026-11-14 | Ambiguous measure: when a claim has two valid readings (for example KPI vs KPI-JAE, or monthly vs 12-month change) and the text gives too little context to choose, show **both** official figures and explain in plain words what each one measures. Never pick one silently. | The reader knows the context better than the tool; showing both lets them see which figure they meant. | Haakon |
+| D5 | 2026-11-14 | Verdict for D4 cases: `matched` with label `ambiguous_measure` if the stated value matches either reading; `mismatched` if it matches neither. The report always shows both figures and names which reading fits. | Exit code 1 stays reserved for a real error; CI does not fail over wording alone. | Haakon |
 
 ## Weekend 1 build choices (for review)
 
@@ -28,12 +29,6 @@ should confirm or overturn them.
 | B7 | Weekend 1 adds a `norfigures latest` command. | It is the "done when" check for weekend 1, and stays as a handy smoke test. |
 
 ## Pending (spec section 7 edge-case defaults)
-
-**Follow-up to D4, proposed default:** verdict `matched` with label
-`ambiguous_measure` if the stated value matches either reading;
-`mismatched` if it matches neither. The report always shows both figures and
-names which reading fits. This keeps exit code 1 for a real error and avoids
-failing CI over wording alone. Awaiting Haakon's confirmation.
 
 The other rows in spec section 7 await Haakon's decision: unemployment, revisions, forecasts, rounding, hedged figures, percent vs
 points, monthly vs 12-month, no figure, missing period, policy rate on a date.
