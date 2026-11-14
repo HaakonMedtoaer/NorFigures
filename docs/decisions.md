@@ -22,6 +22,7 @@ calls listed here. Status is **decided** or **pending**.
 | D13 | 2026-11-14 | No figure ("rekordsvak krone"): status `no_figure`, verdict `cannot_verify`, reported by name. Kept open for later: checking record claims (e.g. "highest since …") by computing over the series. | Out of MVP scope, but a likely extension. | Haakon |
 | D14 | 2026-11-14 | Missing period: with `--published`, infer the latest period published on or before that date and set `period_inferred`; without it, `cannot_verify` with label `period_missing`. | Never guess silently. | Haakon |
 | D15 | 2026-11-14 | Policy rate on a date: the rate in force on the stated date, or on the publication date if none is given; non-business days use the last business day before. | The series has business-day observations only. | Haakon |
+| D16 | 2026-11-14 | Unemployment: `out_of_scope` in the MVP, reported by name. First indicator added after the MVP is SSB's AKU (labour force survey). NAV registered unemployment comes later as a second source; D4/D5 then cover AKU vs NAV ambiguity. | Keeps the MVP at three indicators (stop rule). AKU uses the existing SSB host; NAV needs a new adapter and host. | Haakon |
 
 ## Weekend 1 build choices (for review)
 
@@ -38,12 +39,9 @@ should confirm or overturn them.
 | B6 | Recordings are keyed by a hash of the exact URL, stored in `tests/recorded/http/`. The allowlist is checked in replay mode too. | Deterministic offline tests; replay cannot be used to sneak in another host. |
 | B7 | Weekend 1 adds a `norfigures latest` command. | It is the "done when" check for weekend 1, and stays as a handy smoke test. |
 
-## Pending (spec section 7 edge-case defaults)
+## Pending
 
-Unemployment (spec section 7, row 2): proposed `out_of_scope`, reported by
-name, for the MVP. Haakon asked why; awaiting decision.
-
-These must be settled before the verifier (weekend 2) encodes them.
+All spec section 7 edge cases are decided (D4 to D16).
 
 ## Other open items
 

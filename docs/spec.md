@@ -154,7 +154,7 @@ A mismatch outranks an unverifiable claim. Text with no checkable claims exits 2
 
 ## 7. Edge-case rules
 
-Decisions are recorded in docs/decisions.md (D4 to D15). Unemployment is still pending.
+All rows are decided; see docs/decisions.md (D4 to D16).
 
 | Case | Proposed default |
 | --- | --- |
@@ -294,7 +294,7 @@ Open item: live mode via a stdlib server with server-sent events, or by polling 
 
 ## 15. Out of scope and later ideas
 
-- More indicators: unemployment (AKU), GDP, wage growth, house prices.
+- More indicators: unemployment (AKU) first, right after the MVP (D16); then GDP, wage growth, house prices.
 - NAV as a second source for registered unemployment.
 - First-published vintage checking, for claims made before a revision.
 - A full web UI or browser extension.
@@ -313,4 +313,4 @@ Open item: live mode via a stdlib server with server-sent events, or by polling 
 | Bring-your-own key | Assumed yes. The offline mode lets a reader run the tests without any key. |
 | Hosting | None needed for a CLI. |
 | MCP dependency | Stdlib-only implementation of the protocol, or one allowed dependency for the server alone. Decide in weekend 3. |
-| Edge-case defaults | All rows decided (D4 to D15) except unemployment. See docs/decisions.md. |
+| Edge-case defaults | All rows decided (D4 to D16). See docs/decisions.md. |
