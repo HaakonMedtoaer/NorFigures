@@ -1,0 +1,24 @@
+#!/bin/sh
+# Install: git config core.hooksPath hooks
+# Runs the offline tests and scans staged changes for keys and stray hosts.
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+python3 -m unittest -q || { echo "pre-commit: tests failed"; exit 1; }
+
+# Only scan added lines in staged source and docs, not recordings.
+added=$(git diff --cached -U0 -- . ':(exclude)tests/recorded' | grep '^+' | grep -v '^+++' || true)
+
+if printf '%s\n' "$added" | grep -Eq 'sk-ant-[A-Za-z0-9_-]{10,}|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}'; then
+  echo "pre-commit: something that looks like an API key is staged"; exit 1
+fi
+
+# Host scan covers runtime code only; tests name bad hosts on purpose.
+src_added=$(git diff --cached -U0 -- src | grep '^+' | grep -v '^+++' || true)
+hosts=$(printf '%s\n' "$src_added" | grep -Eo 'https?://[A-Za-z0-9.-]+' | sed -E 's#https?://##' | tr 'A-Z' 'a-z' | sort -u || true)
+for h in $hosts; do
+  case "$h" in
+    data.ssb.no|data.norges-bank.no) ;;
+    *) echo "pre-commit: URL host '$h' is not on the reviewed list; check it or extend this hook"; exit 1 ;;
+  esac
+done

@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "norfigures"
+version = "0.1.0"
+description = "Verify Norwegian economic figures against SSB and Norges Bank"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+norfigures = "norfigures.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
