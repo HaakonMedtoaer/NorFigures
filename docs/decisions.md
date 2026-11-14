@@ -12,6 +12,16 @@ calls listed here. Status is **decided** or **pending**.
 | D3 | 2026-11-14 | Exit codes 0 / 1 / 2 / 3 as in spec section 5; "nothing checked" exits 2. | A silent pass is the worst failure. | Haakon |
 | D4 | 2026-11-14 | Ambiguous measure: when a claim has two valid readings (for example KPI vs KPI-JAE, or monthly vs 12-month change) and the text gives too little context to choose, show **both** official figures and explain in plain words what each one measures. Never pick one silently. | The reader knows the context better than the tool; showing both lets them see which figure they meant. | Haakon |
 | D5 | 2026-11-14 | Verdict for D4 cases: `matched` with label `ambiguous_measure` if the stated value matches either reading; `mismatched` if it matches neither. The report always shows both figures and names which reading fits. | Exit code 1 stays reserved for a real error; CI does not fail over wording alone. | Haakon |
+| D6 | 2026-11-14 | Revisions: compare against the latest published value; record `retrieved_at`. | First-published vintage is a later feature. | Haakon |
+| D7 | 2026-11-14 | Forecasts (future tense, "venter", "anslår", "expects", future period): status `forecast`, verdict `cannot_verify`, label `forecast_not_checkable`. | A forecast cannot be checked against published data. | Haakon |
+| D8 | 2026-11-14 | Rounding: round the official value half-up to the stated number of decimals; matched if equal. "3,6 %" matches 3.56, not 3.54. | Matches how people quote figures. | Haakon |
+| D9 | 2026-11-14 | EUR/NOK for a period without a named date: matched if the stated value lies within the period's daily low and high. | No single official value exists for a period. | Haakon |
+| D10 | 2026-11-14 | Hedged figures ("rundt", "omtrent", "nærmere", "about"): tolerance of plus or minus one unit in the last stated digit; label `approximate`. | The writer signalled imprecision. | Haakon |
+| D11 | 2026-11-14 | Changes in a rate are percentage points. "Renten økte med 0,25 prosent" is checked as 0.25 points; label `unit_assumed`. | Common usage; the label keeps it visible. | Haakon |
+| D12 | 2026-11-14 | "Inflasjonen" with no qualifier means 12-month change; "fra september til oktober" means monthly change; anything else is ambiguous and follows D4/D5. | One rule for all ambiguity. | Haakon |
+| D13 | 2026-11-14 | No figure ("rekordsvak krone"): status `no_figure`, verdict `cannot_verify`, reported by name. Kept open for later: checking record claims (e.g. "highest since …") by computing over the series. | Out of MVP scope, but a likely extension. | Haakon |
+| D14 | 2026-11-14 | Missing period: with `--published`, infer the latest period published on or before that date and set `period_inferred`; without it, `cannot_verify` with label `period_missing`. | Never guess silently. | Haakon |
+| D15 | 2026-11-14 | Policy rate on a date: the rate in force on the stated date, or on the publication date if none is given; non-business days use the last business day before. | The series has business-day observations only. | Haakon |
 
 ## Weekend 1 build choices (for review)
 
@@ -30,8 +40,9 @@ should confirm or overturn them.
 
 ## Pending (spec section 7 edge-case defaults)
 
-The other rows in spec section 7 await Haakon's decision: unemployment, revisions, forecasts, rounding, hedged figures, percent vs
-points, monthly vs 12-month, no figure, missing period, policy rate on a date.
+Unemployment (spec section 7, row 2): proposed `out_of_scope`, reported by
+name, for the MVP. Haakon asked why; awaiting decision.
+
 These must be settled before the verifier (weekend 2) encodes them.
 
 ## Other open items

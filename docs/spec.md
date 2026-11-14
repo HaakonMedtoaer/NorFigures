@@ -154,7 +154,7 @@ A mismatch outranks an unverifiable claim. Text with no checkable claims exits 2
 
 ## 7. Edge-case rules
 
-Every default below is a proposal pending Haakon's decision, unless marked **Decided**.
+Decisions are recorded in docs/decisions.md (D4 to D15). Unemployment is still pending.
 
 | Case | Proposed default |
 | --- | --- |
@@ -300,7 +300,7 @@ Open item: live mode via a stdlib server with server-sent events, or by polling 
 - A full web UI or browser extension.
 - PDF and Word document input.
 - A legacy-format converter as a second input path into the same verify loop.
-- Checking non-numeric claims such as "record low" by computing over the series.
+- Checking non-numeric claims such as "record low" or "highest since 2008" by computing over the series (kept open, D13).
 
 ## 16. Open questions
 
@@ -313,4 +313,4 @@ Open item: live mode via a stdlib server with server-sent events, or by polling 
 | Bring-your-own key | Assumed yes. The offline mode lets a reader run the tests without any key. |
 | Hosting | None needed for a CLI. |
 | MCP dependency | Stdlib-only implementation of the protocol, or one allowed dependency for the server alone. Decide in weekend 3. |
-| Edge-case defaults | Ambiguous measure decided (D4). The other rows in section 7 await Haakon's decision. |
+| Edge-case defaults | All rows decided (D4 to D15) except unemployment. See docs/decisions.md. |
