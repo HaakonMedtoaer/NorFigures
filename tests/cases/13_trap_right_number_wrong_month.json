@@ -1,0 +1,32 @@
+{
+  "description": "KPI steg 3,6 prosent siste tolv måneder til september.",
+  "category": "mapping_trap",
+  "published": "2026-11-15",
+  "text": "KPI steg 3,6 prosent siste tolv måneder til september.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "KPI steg 3,6 prosent siste tolv måneder til september",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": "2026-09",
+      "unit": "percent",
+      "stated_value": "3.6",
+      "mappings": [
+        {
+          "series_id": "kpi_12m"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 1,
+    "claims": {
+      "c1": {
+        "verdict": "mismatched",
+        "labels_include": []
+      }
+    }
+  }
+}

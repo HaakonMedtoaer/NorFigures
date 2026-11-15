@@ -39,6 +39,21 @@ should confirm or overturn them.
 | B6 | Recordings are keyed by a hash of the exact URL, stored in `tests/recorded/http/`. The allowlist is checked in replay mode too. | Deterministic offline tests; replay cannot be used to sneak in another host. |
 | B7 | Weekend 1 adds a `norfigures latest` command. | It is the "done when" check for weekend 1, and stays as a handy smoke test. |
 
+## Weekend 2 build choices (for review)
+
+| # | Choice | Why |
+|---|---|---|
+| B8 | A claim carries `mappings` (a list, canonical reading first) instead of the spec's single `mapping`. | D4 needs two or more readings per claim. |
+| B9 | Only the first mapping must match the claim's measure; alternative readings only need a compatible unit. | Alternatives exist because the measure is uncertain (D12: monthly vs 12-month). |
+| B10 | A month on a daily series (policy rate, EUR/NOK) is checked against the month's low and high. | D9 for EUR/NOK; the same reading is the fairest one for "styringsrenten var 4,5 % i oktober". |
+| B11 | Inferred KPI period (D14): from day 16 of a month, last month; on days 1 to 15, both last month and the month before, since SSB publishes around the 10th. Label `period_ambiguous`; D5 applies. | We have no release calendar yet. A release-calendar lookup could replace this later. |
+| B12 | A change in a rate ("økte med 0,25") = last value in the period minus last value before it. | Works for a date or a month. |
+| B13 | Guard: a period after the publication date (or today) is treated as a forecast, even if the extractor said `checkable`. | Code, not the model, decides what can be published yet. |
+| B14 | Annual periods ("inflasjonen i 2025") are `cannot_verify` with label `annual_not_supported`. | Annual averages are a different series; later feature. |
+| B15 | JSON output writes numbers as strings ("4.0"). | Keeps the published precision exact. |
+| B16 | `check --claims FILE` takes hand-written claims until the agents exist (weekend 3). Run logs go to `runs/<run_id>.jsonl` (git-ignored). | Weekend 2 is deterministic only. |
+| B17 | Provenance check: every official value must equal the observations fetched in this run, tracked by object identity, or the run fails with exit 3. | Spec section 10, "number provenance check". |
+
 ## Pending
 
 All spec section 7 edge cases are decided (D4 to D16).

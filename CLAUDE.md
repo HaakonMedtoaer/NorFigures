@@ -18,6 +18,8 @@ claims and which series answers it. It never supplies a number. Every
   Stay inside your contract's "Must not" list.
 - `src/norfigures/net.py`: the only network code. Allowlist of two hosts, GET only.
 - `src/norfigures/fetch.py`: the only path from a series ID to an official number.
+- `src/norfigures/verifier.py`: deterministic comparison under D4 to D16, plus the
+  provenance check. No model is ever involved here.
 - `docs/decisions.md`: decisions made and still pending. Pending defaults in
   spec section 7 are Haakon's to decide; do not settle them in code silently.
 
@@ -26,8 +28,11 @@ claims and which series answers it. It never supplies a number. Every
 - Standard library only in `src/`. Ask before adding any dependency.
 - Tests: `python -m unittest` from the repo root. They run offline against
   `tests/recorded/`. Keep them passing before every commit.
-- Refresh recordings only on purpose: `NORFIGURES_RECORD=1 python -m norfigures latest`
-  (with `PYTHONPATH=src` if not installed). Commit the new files in `tests/recorded/http/`.
+- Refresh recordings only on purpose: `NORFIGURES_RECORD=1 python -m unittest`
+  re-runs every test against the live APIs and saves the responses. Commit the
+  new files in `tests/recorded/http/`. A new fixture case needs this once.
+- Fixture cases live in `tests/cases/*.json` (text, claims, expected verdicts).
+  Keep 15 to 20 of them; bad-input files go in `tests/cases/bad_input/`.
 - Never add a host to `ALLOWED_HOSTS` without a decision recorded in `docs/decisions.md`.
 - Fail loudly. A claim that cannot be checked is reported by name, never dropped.
 - Keep values as `Decimal` from the source's own text; precision matters for rounding.

@@ -1,0 +1,30 @@
+{
+  "description": "Kronen er rekordsvak.",
+  "category": "no_figure",
+  "published": "2026-11-15",
+  "text": "Kronen er rekordsvak.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Kronen er rekordsvak",
+      "status": "no_figure",
+      "indicator": "eurnok",
+      "measure": null,
+      "period": null,
+      "unit": null,
+      "stated_value": null,
+      "mappings": []
+    }
+  ],
+  "expected": {
+    "exit_code": 2,
+    "claims": {
+      "c1": {
+        "verdict": "cannot_verify",
+        "labels_include": [
+          "no_figure"
+        ]
+      }
+    }
+  }
+}

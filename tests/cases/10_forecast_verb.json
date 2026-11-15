@@ -1,0 +1,34 @@
+{
+  "description": "Analytikerne venter at kronen svekkes til 12,00 mot euro neste år.",
+  "category": "forecast",
+  "published": "2026-11-15",
+  "text": "Analytikerne venter at kronen svekkes til 12,00 mot euro neste år.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "kronen svekkes til 12,00 mot euro neste år",
+      "status": "forecast",
+      "indicator": "eurnok",
+      "measure": "level",
+      "period": "2027",
+      "unit": "nok_per_eur",
+      "stated_value": "12.00",
+      "mappings": [
+        {
+          "series_id": "eurnok"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 2,
+    "claims": {
+      "c1": {
+        "verdict": "cannot_verify",
+        "labels_include": [
+          "forecast_not_checkable"
+        ]
+      }
+    }
+  }
+}

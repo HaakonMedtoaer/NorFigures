@@ -1,0 +1,37 @@
+{
+  "description": "Inflasjonen var 2,7 prosent i oktober.",
+  "category": "ambiguous",
+  "published": "2026-11-15",
+  "text": "Inflasjonen var 2,7 prosent i oktober.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Inflasjonen var 2,7 prosent i oktober",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": "2026-10",
+      "unit": "percent",
+      "stated_value": "2.7",
+      "mappings": [
+        {
+          "series_id": "kpi_12m"
+        },
+        {
+          "series_id": "kpi_jae_12m"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 0,
+    "claims": {
+      "c1": {
+        "verdict": "matched",
+        "labels_include": [
+          "ambiguous_measure"
+        ]
+      }
+    }
+  }
+}

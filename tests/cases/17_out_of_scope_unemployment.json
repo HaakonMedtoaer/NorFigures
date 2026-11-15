@@ -1,0 +1,30 @@
+{
+  "description": "Arbeidsledigheten var 4,5 prosent i oktober.",
+  "category": "no_figure",
+  "published": "2026-11-15",
+  "text": "Arbeidsledigheten var 4,5 prosent i oktober.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Arbeidsledigheten var 4,5 prosent i oktober",
+      "status": "out_of_scope",
+      "indicator": "unemployment",
+      "measure": "level",
+      "period": "2026-10",
+      "unit": "percent",
+      "stated_value": "4.5",
+      "mappings": []
+    }
+  ],
+  "expected": {
+    "exit_code": 2,
+    "claims": {
+      "c1": {
+        "verdict": "cannot_verify",
+        "labels_include": [
+          "out_of_scope"
+        ]
+      }
+    }
+  }
+}

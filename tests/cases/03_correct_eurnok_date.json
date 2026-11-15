@@ -1,0 +1,32 @@
+{
+  "description": "Euroen kostet 10,57 kroner 13. november.",
+  "category": "correct",
+  "published": "2026-11-15",
+  "text": "Euroen kostet 10,57 kroner 13. november.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Euroen kostet 10,57 kroner 13. november",
+      "status": "checkable",
+      "indicator": "eurnok",
+      "measure": "level",
+      "period": "2026-11-13",
+      "unit": "nok_per_eur",
+      "stated_value": "10.57",
+      "mappings": [
+        {
+          "series_id": "eurnok"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 0,
+    "claims": {
+      "c1": {
+        "verdict": "matched",
+        "labels_include": []
+      }
+    }
+  }
+}

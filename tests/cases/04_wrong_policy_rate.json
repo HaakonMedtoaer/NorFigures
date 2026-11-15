@@ -1,0 +1,32 @@
+{
+  "description": "Styringsrenten var 4,25 prosent i oktober.",
+  "category": "wrong",
+  "published": "2026-11-15",
+  "text": "Styringsrenten var 4,25 prosent i oktober.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Styringsrenten var 4,25 prosent i oktober",
+      "status": "checkable",
+      "indicator": "policy_rate",
+      "measure": "level",
+      "period": "2026-10",
+      "unit": "percent",
+      "stated_value": "4.25",
+      "mappings": [
+        {
+          "series_id": "policy_rate"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 1,
+    "claims": {
+      "c1": {
+        "verdict": "mismatched",
+        "labels_include": []
+      }
+    }
+  }
+}

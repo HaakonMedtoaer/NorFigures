@@ -1,0 +1,58 @@
+{
+  "description": "Prisveksten siste tolv måneder er nå 3,4 prosent, og kjerneinflasjonen er rundt 3 prosent.",
+  "category": "edge",
+  "published": "2026-11-12",
+  "text": "Prisveksten siste tolv måneder er nå 3,4 prosent, og kjerneinflasjonen er rundt 3 prosent.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Prisveksten siste tolv måneder er nå 3,4 prosent",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": null,
+      "unit": "percent",
+      "stated_value": "3.4",
+      "mappings": [
+        {
+          "series_id": "kpi_12m"
+        }
+      ]
+    },
+    {
+      "id": "c2",
+      "source_text": "kjerneinflasjonen er rundt 3 prosent",
+      "status": "checkable",
+      "indicator": "kpi_jae",
+      "measure": "12_month_change",
+      "period": null,
+      "unit": "percent",
+      "stated_value": "3",
+      "hedged": true,
+      "mappings": [
+        {
+          "series_id": "kpi_jae_12m"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 0,
+    "claims": {
+      "c1": {
+        "verdict": "matched",
+        "labels_include": [
+          "period_inferred",
+          "period_ambiguous"
+        ]
+      },
+      "c2": {
+        "verdict": "matched",
+        "labels_include": [
+          "approximate",
+          "period_inferred"
+        ]
+      }
+    }
+  }
+}

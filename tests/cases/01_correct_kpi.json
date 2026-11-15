@@ -1,0 +1,32 @@
+{
+  "description": "KPI steg med 3,6 prosent siste tolv måneder til oktober.",
+  "category": "correct",
+  "published": "2026-11-15",
+  "text": "KPI steg med 3,6 prosent siste tolv måneder til oktober.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "KPI steg med 3,6 prosent siste tolv måneder til oktober",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": "2026-10",
+      "unit": "percent",
+      "stated_value": "3.6",
+      "mappings": [
+        {
+          "series_id": "kpi_12m"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 0,
+    "claims": {
+      "c1": {
+        "verdict": "matched",
+        "labels_include": []
+      }
+    }
+  }
+}

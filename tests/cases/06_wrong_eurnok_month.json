@@ -1,0 +1,32 @@
+{
+  "description": "Euroen kostet 11,20 kroner i oktober.",
+  "category": "wrong",
+  "published": "2026-11-15",
+  "text": "Euroen kostet 11,20 kroner i oktober.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Euroen kostet 11,20 kroner i oktober",
+      "status": "checkable",
+      "indicator": "eurnok",
+      "measure": "level",
+      "period": "2026-10",
+      "unit": "nok_per_eur",
+      "stated_value": "11.20",
+      "mappings": [
+        {
+          "series_id": "eurnok"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 1,
+    "claims": {
+      "c1": {
+        "verdict": "mismatched",
+        "labels_include": []
+      }
+    }
+  }
+}

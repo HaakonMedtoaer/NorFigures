@@ -1,0 +1,79 @@
+{
+  "description": "Inflasjonen var 3,1 % i oktober. Norges Bank holdt styringsrenten på 4,0 %, og analytikerne venter at kronen svekkes til 12,00 mot euro neste år.",
+  "category": "worked_example",
+  "published": "2026-11-15",
+  "text": "Inflasjonen var 3,1 % i oktober. Norges Bank holdt styringsrenten på 4,0 %, og analytikerne venter at kronen svekkes til 12,00 mot euro neste år.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Inflasjonen var 3,1 % i oktober",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": "2026-10",
+      "unit": "percent",
+      "stated_value": "3.1",
+      "mappings": [
+        {
+          "series_id": "kpi_12m"
+        },
+        {
+          "series_id": "kpi_jae_12m"
+        }
+      ]
+    },
+    {
+      "id": "c2",
+      "source_text": "styringsrenten på 4,0 %",
+      "status": "checkable",
+      "indicator": "policy_rate",
+      "measure": "level",
+      "period": null,
+      "unit": "percent",
+      "stated_value": "4.0",
+      "mappings": [
+        {
+          "series_id": "policy_rate"
+        }
+      ]
+    },
+    {
+      "id": "c3",
+      "source_text": "kronen svekkes til 12,00 mot euro neste år",
+      "status": "forecast",
+      "indicator": "eurnok",
+      "measure": "level",
+      "period": "2027",
+      "unit": "nok_per_eur",
+      "stated_value": "12.00",
+      "mappings": [
+        {
+          "series_id": "eurnok"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 1,
+    "claims": {
+      "c1": {
+        "verdict": "mismatched",
+        "labels_include": [
+          "ambiguous_measure"
+        ]
+      },
+      "c2": {
+        "verdict": "mismatched",
+        "labels_include": [
+          "period_inferred"
+        ]
+      },
+      "c3": {
+        "verdict": "cannot_verify",
+        "labels_include": [
+          "forecast_not_checkable"
+        ]
+      }
+    }
+  }
+}

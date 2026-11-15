@@ -12,6 +12,7 @@ Code reads the `series` JSON block below. Edit it here and nowhere else.
 |---|---|---|---|
 | Norges Bank's operational inflation target | 2 % annual CPI growth over time | Regulation on monetary policy (Forskrift om pengepolitikken), 2018 | 2026-11-14 (needs a source link before weekend 3) |
 | CPI reference year in SSB tables from 2026 | 2025 = 100 | SSB table 14706 notes | 2026-11-14 |
+| SSB release timing for KPI | KPI for month M is published around the 10th of month M+1 | Observed pattern; confirm against SSB's release calendar | 2026-11-15 (to verify) |
 
 ## Indicator definitions
 

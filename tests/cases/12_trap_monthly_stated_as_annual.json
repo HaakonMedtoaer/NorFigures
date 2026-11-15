@@ -1,0 +1,32 @@
+{
+  "description": "KPI-veksten siste tolv måneder var 0,5 prosent i september.",
+  "category": "mapping_trap",
+  "published": "2026-11-15",
+  "text": "KPI-veksten siste tolv måneder var 0,5 prosent i september.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "KPI-veksten siste tolv måneder var 0,5 prosent i september",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": "2026-09",
+      "unit": "percent",
+      "stated_value": "0.5",
+      "mappings": [
+        {
+          "series_id": "kpi_12m"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "exit_code": 1,
+    "claims": {
+      "c1": {
+        "verdict": "mismatched",
+        "labels_include": []
+      }
+    }
+  }
+}

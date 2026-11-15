@@ -10,8 +10,9 @@ match, which don't, and which could not be checked.
 **The AI interprets, the source verifies.** A model may read a sentence and
 pick the right series. It never supplies a number.
 
-> Status: early build (weekend 1 of 4). The source layer works; claim checking
-> arrives next. See [`docs/spec.md`](docs/spec.md) and [`docs/decisions.md`](docs/decisions.md).
+> Status: early build (weekend 2 of 4). The deterministic half works: claims
+> written by hand are checked, reported and given an exit code. The AI agents
+> that read raw text arrive in weekend 3. See [`docs/spec.md`](docs/spec.md) and [`docs/decisions.md`](docs/decisions.md).
 
 ## Try it
 
@@ -21,7 +22,14 @@ Python 3.10+, standard library only.
 git clone https://github.com/HaakonMedtoaer/norfigures && cd norfigures
 PYTHONPATH=src python -m norfigures latest --offline   # recorded responses, no network
 PYTHONPATH=src python -m norfigures latest             # live from SSB and Norges Bank
+
+# Check hand-written claims (the spec's worked example):
+python -c "import json;print(json.dumps(json.load(open('tests/cases/20_spec_worked_example.json'))['claims']))" > example.json
+PYTHONPATH=src python -m norfigures check --claims example.json --published 2026-11-15
 ```
+
+Exit codes: 0 all matched, 1 at least one mismatch, 2 something could not be
+verified (or nothing was checked), 3 bad input, bad config or source unreachable.
 
 ## Tests
 
@@ -29,8 +37,13 @@ PYTHONPATH=src python -m norfigures latest             # live from SSB and Norge
 python -m unittest
 ```
 
-Tests run offline against recorded API responses in `tests/recorded/`.
-Refresh them with `NORFIGURES_RECORD=1 PYTHONPATH=src python -m norfigures latest`.
+Tests run offline against recorded API responses in `tests/recorded/`, and
+include 20 fixture cases in `tests/cases/` (correct, wrong, ambiguous,
+forecasts, mapping traps, no figure, edge cases). Refresh recordings with:
+
+```bash
+NORFIGURES_RECORD=1 python -m unittest
+```
 
 ## Sources
 
