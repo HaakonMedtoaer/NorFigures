@@ -144,6 +144,8 @@ def compare_range(stated: Decimal, low: Decimal, high: Decimal, hedged: bool) ->
 
 def verify_claim(claim: Claim, run: Run, published: date | None, today: date) -> ClaimResult:
     res = ClaimResult(claim, CANNOT_VERIFY, labels=list(claim.labels))
+    if claim.notes:
+        res.notes.append(claim.notes)
 
     def cannot(label: str, note: str) -> ClaimResult:
         res.verdict = CANNOT_VERIFY

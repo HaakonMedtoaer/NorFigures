@@ -60,6 +60,7 @@ class Claim:
     hedged: bool = False
     labels: tuple[str, ...] = ()
     mappings: tuple[str, ...] = ()   # ledger series IDs, canonical first
+    notes: str = ""                  # e.g. phrase-table overrides, mapper notes
 
 
 def parse_json(text: str) -> object:
@@ -136,6 +137,8 @@ def validate(data: object, known_series: dict) -> list[Claim]:
 
         hedged = raw.get("hedged", False)
         need(isinstance(hedged, bool), "hedged must be true or false")
+        notes = raw.get("notes", "")
+        need(isinstance(notes, str), "notes must be a string")
         labels = raw.get("labels", [])
         need(isinstance(labels, list) and all(isinstance(x, str) for x in labels),
              "labels must be a list of strings")
@@ -169,7 +172,7 @@ def validate(data: object, known_series: dict) -> list[Claim]:
                 id=cid, source_text=raw["source_text"], status=status,
                 indicator=indicator, measure=measure, period=period, unit=unit,
                 stated_value=stated, hedged=hedged, labels=tuple(labels),
-                mappings=tuple(ids)))
+                mappings=tuple(ids), notes=notes if isinstance(notes, str) else ""))
 
     if problems:
         raise SchemaError(problems)

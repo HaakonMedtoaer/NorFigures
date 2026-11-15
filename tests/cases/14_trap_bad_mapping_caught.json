@@ -30,5 +30,15 @@
         ]
       }
     }
+  },
+  "expected_e2e": {
+    "exit_code": 0,
+    "claims": {
+      "c1": {
+        "verdict": "matched",
+        "labels_include": []
+      }
+    },
+    "why": "In the full loop the code mapper reads 'fra september til oktober' as monthly change, so the bad hand mapping never happens."
   }
 }

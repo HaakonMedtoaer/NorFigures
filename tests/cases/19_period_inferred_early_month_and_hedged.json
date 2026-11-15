@@ -16,6 +16,9 @@
       "mappings": [
         {
           "series_id": "kpi_12m"
+        },
+        {
+          "series_id": "kpi_jae_12m"
         }
       ]
     },
@@ -43,7 +46,8 @@
         "verdict": "matched",
         "labels_include": [
           "period_inferred",
-          "period_ambiguous"
+          "period_ambiguous",
+          "ambiguous_measure"
         ]
       },
       "c2": {

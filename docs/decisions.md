@@ -23,6 +23,9 @@ calls listed here. Status is **decided** or **pending**.
 | D14 | 2026-11-14 | Missing period: with `--published`, infer the latest period published on or before that date and set `period_inferred`; without it, `cannot_verify` with label `period_missing`. | Never guess silently. | Haakon |
 | D15 | 2026-11-14 | Policy rate on a date: the rate in force on the stated date, or on the publication date if none is given; non-business days use the last business day before. | The series has business-day observations only. | Haakon |
 | D16 | 2026-11-14 | Unemployment: `out_of_scope` in the MVP, reported by name. First indicator added after the MVP is SSB's AKU (labour force survey). NAV registered unemployment comes later as a second source; D4/D5 then cover AKU vs NAV ambiguity. | Keeps the MVP at three indicators (stop rule). AKU uses the existing SSB host; NAV needs a new adapter and host. | Haakon |
+| D17 | 2026-11-15 | The extractor agent uses Claude Haiku 5.5 (`claude-haiku-5-5`), effort `medium`, measured on the fixture cases. Switch only an agent that misses cases to Sonnet 5.5. | Narrow, well-specified task; about a tenth of a cent per run. | Haakon |
+| D18 | 2026-11-15 | Two layers. Core (verifier, reports, tests, `check --claims`) stays standard-library only. The `agents` extra (`pip install 'norfigures[agents]'`) adds `anthropic` and `mcp` for the extractor and the MCP server. | Clone-and-run and offline tests keep working with no installs and no key. | Haakon |
+| D19 | 2026-11-15 | Phrase tables (`facts/phrases.md`) for what people write: hedges, forecast verbs, measure phrases, indicator words. Code applies them after the model; where they disagree, the tables win and the claim is labelled `lexicon_override`. | No need for the model to do what a lookup does; fewer model mistakes, and every override is visible. | Haakon |
 
 ## Weekend 1 build choices (for review)
 
@@ -54,6 +57,16 @@ should confirm or overturn them.
 | B16 | `check --claims FILE` takes hand-written claims until the agents exist (weekend 3). Run logs go to `runs/<run_id>.jsonl` (git-ignored). | Weekend 2 is deterministic only. |
 | B17 | Provenance check: every official value must equal the observations fetched in this run, tracked by object identity, or the run fails with exit 3. | Spec section 10, "number provenance check". |
 
+## Weekend 3 build choices (for review)
+
+| # | Choice | Why |
+|---|---|---|
+| B18 | The mapper is plain code (`mapper.py`), not an agent. It maps with the ledger and the phrase tables, following D4 and D12. The spec's mapper agent and `agents/mapper.md` are dropped. | With D19 the mapping is a lookup. A model would add cost and a way to be wrong, and nothing it could know that the tables don't. |
+| B19 | The model is called only through `agents/llm.py`, pinned to `https://api.anthropic.com` (override: `NORFIGURES_ANTHROPIC_BASE_URL`). The data allowlist in `net.py` stays two hosts. The model gets no tools. | Model traffic and data traffic never mix; the model cannot fetch or change a number. |
+| B20 | Extractor output is checked in code: each `source_text` must be a verbatim span of the input, and each `stated_value` must be a number in that span. Failure is a failed extraction (exit 3). | Enforces "never rewrite a number" instead of asking for it. |
+| B21 | Model outputs are recorded per (model, prompt, publication date, text) in `tests/recorded/agents/`. A changed prompt or phrase table means re-recording; until then the end-to-end test skips with a message rather than passing. | Tests stay offline and free; stale recordings never pass silently. |
+| B22 | Phrase-table rule for change verbs: the verb, then "med"/"by" later in the claim ("økte renten med 0,25"). KPI growth nouns ("KPI-veksten") mean 12-month change by default. | Real wording puts words between the verb and "med"; "KPI-veksten" is read like "inflasjonen". |
+
 ## Pending
 
 All spec section 7 edge cases are decided (D4 to D16).
@@ -63,5 +76,6 @@ All spec section 7 edge cases are decided (D4 to D16).
 - Source a link for the 2 % inflation target in the ledger.
 - Terms of use for both APIs (both appear open with no key; SSB rate limit
   observed at 40 requests per minute).
-- MCP dependency: stdlib-only or one dependency. Weekend 3.
-- LLM model and cost per run. Weekend 3.
+- Cost per run: measure when the extractor outputs are recorded (D17).
+- Weekend 3 "done when" (full loop passes all cases) needs the recordings:
+  `norfigures record-agents` with an Anthropic API key.

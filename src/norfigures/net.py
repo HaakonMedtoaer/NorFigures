@@ -106,7 +106,7 @@ class Client:
 
     @classmethod
     def from_env(cls, offline: bool = False) -> "Client":
-        if offline:
+        if offline or os.environ.get("NORFIGURES_OFFLINE") == "1":
             return cls("replay")
         mode = "record" if os.environ.get("NORFIGURES_RECORD") == "1" else "live"
         return cls(mode)

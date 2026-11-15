@@ -46,10 +46,17 @@ class BadInputTest(unittest.TestCase):
         code, _, _ = run("check", "--claims", "/nonexistent/claims.json", "--offline", "--log", "none")
         self.assertEqual(code, 3)
 
-    def test_raw_text_not_supported_yet(self):
+    def test_needs_exactly_one_input(self):
         code, _, err = run("check")
         self.assertEqual(code, 3)
-        self.assertIn("weekend 3", err)
+        self.assertIn("either a text FILE", err)
+
+    def test_offline_text_without_recording_exits_3(self):
+        tmp = Path(tempfile.mkdtemp()) / "t.txt"
+        tmp.write_text("En tekst som aldri er tatt opp: KPI var 9,9 % i mars.", encoding="utf-8")
+        code, _, err = run("check", str(tmp), "--offline", "--log", "none")
+        self.assertEqual(code, 3)
+        self.assertIn("no recorded extractor output", err)
 
     def test_bad_published_date(self):
         code, _, err = run("check", "--claims", claims_file("01_correct_kpi"), "--published",
