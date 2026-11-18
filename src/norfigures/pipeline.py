@@ -70,7 +70,7 @@ def prepare(extracted: list[dict], series: dict[str, Series], log: RunLog) -> li
             c["notes"] = (c.get("notes", "") + " " + note).strip()
         c["mappings"] = [{"series_id": i} for i in ids]
         log.emit("map", "ok" if ids else "unmapped", c["id"], mappings=ids,
-                 status=c["status"], labels=c.get("labels", []))
+                 claim_status=c["status"], labels=c.get("labels", []))
         out.append(c)
     return out
 

@@ -103,5 +103,27 @@ class MapperTest(unittest.TestCase):
                     self.assertEqual(got, [m["series_id"] for m in c["mappings"]])
 
 
+class PrepareTest(unittest.TestCase):
+    """The text pipeline's mapping step, without any model or recording."""
+
+    def test_prepare_maps_and_logs_each_claim(self):
+        from norfigures.events import RunLog
+        from norfigures.pipeline import prepare
+        log = RunLog()
+        extracted = [
+            claim("Inflasjonen var 3,1 % i oktober"),
+            claim("KPI-JAE steg 0,2 prosent fra forrige måned", indicator="kpi_jae"),
+            claim("Arbeidsledigheten var 4,5 prosent", indicator="other"),
+        ]
+        out = prepare(extracted, load(), log)
+        self.assertEqual([m["series_id"] for m in out[0]["mappings"]], ["kpi_12m", "kpi_jae_12m"])
+        self.assertEqual((out[1]["status"], out[1]["mappings"]), ("ambiguous", []))
+        self.assertIn("unmapped", out[1]["labels"])
+        self.assertEqual(out[2]["status"], "out_of_scope")
+        maps = [e for e in log.events if e["stage"] == "map"]
+        self.assertEqual([e["claim_id"] for e in maps], ["c1", "c1", "c1"])
+        self.assertEqual(maps[0]["detail"]["claim_status"], "checkable")
+
+
 if __name__ == "__main__":
     unittest.main()
