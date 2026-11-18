@@ -1,0 +1,11 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt_sha": "353d3a37f7397a23",
+ "published": "2025-03-10",
+ "text": "Prisene steg mye mer enn ventet i februar",
+ "response_text": "{\"claims\":[{\"source_text\":\"Prisene steg mye mer enn ventet i februar\",\"status\":\"no_figure\",\"indicator\":\"kpi\",\"other_indicator\":null,\"measure\":null,\"period\":\"2025-02\",\"unit\":null,\"stated_value\":null,\"hedged\":false}]}",
+ "stop_reason": "end_turn",
+ "input_tokens": 4703,
+ "output_tokens": 374,
+ "recorded_at": "2026-11-18T20:47:09+00:00"
+}

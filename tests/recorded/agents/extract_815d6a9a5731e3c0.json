@@ -1,11 +1,11 @@
 {
  "model": "claude-haiku-5-5",
- "prompt_sha": "b796fbf48c4c2104",
+ "prompt_sha": "353d3a37f7397a23",
  "published": null,
  "text": "KPI-veksten er 3,6 prosent.",
  "response_text": "{\"claims\":[{\"source_text\":\"KPI-veksten er 3,6 prosent.\",\"status\":\"checkable\",\"indicator\":\"kpi\",\"other_indicator\":null,\"measure\":\"12_month_change\",\"period\":null,\"unit\":\"percent\",\"stated_value\":\"3,6\",\"hedged\":false}]}",
  "stop_reason": "end_turn",
- "input_tokens": 4389,
+ "input_tokens": 4698,
  "output_tokens": 98,
- "recorded_at": "2026-11-18T11:07:07+00:00"
+ "recorded_at": "2026-11-18T20:46:59+00:00"
 }
