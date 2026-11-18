@@ -246,7 +246,7 @@ norfigures/
 
 Written before any feature beyond the MVP.
 
-1. **First screen.** One-line problem statement, a short GIF of a run, and a sample table that shows a caught mismatch.
+1. **First screen.** One-line problem statement, a short animation of a run with one indicator per worker (see section 14, not a terminal recording), and a sample table that shows a caught mismatch.
 2. **Quick start.** Clone, set one environment variable, run the example.
 3. **Architecture diagram.** Five boxes: extract, map, fetch, compare, report. The two agent boxes are visually distinct from the three code boxes.
 4. **"What Claude wrote and what I decided."** Claude Code wrote the code. The section lists Haakon's decisions with links to `docs/decisions.md`: the never-supplies-a-number rule, the edge-case defaults, the exit codes, what was cut.
@@ -262,7 +262,7 @@ Counted in working weekends, since hours are not fixed.
 | 1 | Source layer: confirmed series IDs in the ledger, net.py with allowlist, fetch for all three indicators, first recordings | A script prints the latest value for each indicator, offline and live |
 | 2 | Claim schema, verifier, report, exit codes, fixture cases with hand-written claims, run event log | All deterministic tests pass with no LLM involved |
 | 3 | Extractor and mapper agents with contracts, MCP server, end-to-end CLI | The full loop passes all 15 to 20 cases |
-| 4 | README, GIF, diagram, decisions log, hooks, CI badge, publish | A stranger can clone and run the example in five minutes |
+| 4 | README, diagram, decisions log, hooks, CI badge, publish | A stranger can clone and run the example in five minutes |
 
 Stop rule: when the loop passes all cases, write the README. No new indicators before that.
 
@@ -283,7 +283,7 @@ A live flow map shows a run moving through the pipeline, so anyone can see which
 - The pipeline writes one event per step to a JSON-lines log (run\_id, claim\_id, stage, status, detail, timestamp). The log is built in the MVP (weekend 2), since it also helps debugging and testing.
 - The flow map only reads that log: one static HTML file, no framework, no build step. It never controls the pipeline.
 - Two modes. Live: `norfigures check --flow` opens the page and follows the log as the run happens. Replay: plays back a recorded run.
-- Replay needs no API key, so a recorded run can be hosted free on GitHub Pages. A recruiter can watch a run in the browser without installing anything, and the README GIF can be recorded from it.
+- Replay needs no API key, so a recorded run can be hosted free on GitHub Pages. A recruiter can watch a run in the browser without installing anything, and the README animation is made from it.
 
 **Not in the flow map**
 
@@ -291,6 +291,25 @@ A live flow map shows a run moving through the pipeline, so anyone can see which
 - History across runs, dashboards or metrics.
 
 Open item: live mode via a stdlib server with server-sent events, or by polling the log file. Decide in weekend 5.
+
+### README animation (decided 18 Nov 2026)
+
+The README's first screen shows an animation of a run instead of a terminal recording: one indicator per worker, showing who is running and which source it is checking. It is staged, not live, but every label in it comes from a real recorded run.
+
+| Indicator | Kind | What its caption shows while it runs |
+| --- | --- | --- |
+| Extractor | AI agent (Claude Haiku 5.5) | "Reading the text…", then "Found 3 claims" |
+| Phrase tables + mapper | Code | The phrase matched and the series chosen, e.g. "inflasjonen → KPI and KPI-JAE" |
+| SSB | Source | Table, series and period being checked, e.g. "Table 14706 · KPI 12-month · 2026-10" |
+| Norges Bank | Source | Series and date being checked, e.g. "IR/B.KPRA.SD.R · 2026-11-12" |
+| Verifier | Code | Stated against official value per claim, e.g. "3.1 vs 3.6" |
+| Report | Code | The verdicts and the exit code |
+
+- States: idle (grey), running (pulsing), done (green). The AI indicator has its own colour, as in the README diagram.
+- Claims run one after another, so the viewer sees each claim handed from indicator to indicator. It ends on the verdicts: matched, mismatched, cannot verify.
+- Content comes from the run log of the spec's worked example, replayed from recorded responses. Only the timing is staged, so each step stays visible.
+- A script makes it from the log: an animated SVG or GIF in `docs/`, about 10 to 15 seconds, looping. No screen recording and no API key.
+- Built in weekend 5 together with the flow map, which reads the same log and shares its look.
 
 ## 15. Out of scope and later ideas
 
