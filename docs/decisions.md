@@ -77,6 +77,7 @@ All spec section 7 edge cases are decided (D4 to D16).
 - Source a link for the 2 % inflation target in the ledger.
 - Terms of use for both APIs (both appear open with no key; SSB rate limit
   observed at 40 requests per minute).
-- Cost per run: measure when the extractor outputs are recorded (D17).
-- Weekend 3 "done when" (full loop passes all cases) needs the recordings:
-  `norfigures record-agents` with an Anthropic API key.
+- Done 2026-11-18: weekend 3 "done when" met. The full loop passes all 20
+  cases on recorded Claude Haiku 5.5 output. Measured: about 4,400 input and
+  230 output tokens per text; $0.011 for all 20 texts, about $0.0006 per check
+  (Haiku 5.5 list prices, 2026-11-15). Haiku was enough; no Sonnet needed (D17).

@@ -1,0 +1,36 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    # The core needs only the standard library: no installs, no network, no key.
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run tests (offline, recorded responses)
+        run: python -m unittest -v
+
+  agents-extra:
+    # Same tests with the optional agents extra installed, so the MCP server
+    # and SDK-dependent tests run too. Still no API key: model output is replayed.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e '.[agents]'
+      - name: Run tests with the agents extra
+        run: python -m unittest -v
