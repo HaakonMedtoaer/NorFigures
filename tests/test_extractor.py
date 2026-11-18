@@ -53,6 +53,15 @@ class ParseOutputTest(unittest.TestCase):
         self.assertEqual(out[0]["indicator"], "mortgage_rate")
 
 
+class ReplayKeyTest(unittest.TestCase):
+    def test_surrounding_whitespace_does_not_change_the_recording(self):
+        from tests.helpers import load_cases
+        name, case = load_cases()[0]
+        a = extractor.extract(case["text"], case["published"], mode="replay")
+        b = extractor.extract("\n " + case["text"] + "\n\n", case["published"], mode="replay")
+        self.assertEqual(a.claims, b.claims)
+
+
 class NoKeyTest(unittest.TestCase):
     def test_missing_key_is_a_clean_agent_error(self):
         try:

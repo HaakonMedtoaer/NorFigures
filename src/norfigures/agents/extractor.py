@@ -113,6 +113,7 @@ def extract(text: str, published: str | None, mode: str = "live",
             directory: Path = RECORDINGS_DIR) -> Extraction:
     if mode not in MODES:
         raise ValueError(f"mode must be one of {MODES}")
+    text = text.strip()   # a trailing newline from a file must not change the result or key
     path = recording_path(text, published, directory)
     if mode == "replay":
         if not path.exists():

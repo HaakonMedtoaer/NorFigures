@@ -53,6 +53,14 @@ class ReadOnlyTest(unittest.TestCase):
                 client.get("https://data.ssb.no/x")
         self.assertEqual(urlopen.call_args[0][0].get_method(), "GET")
 
+    def test_redirect_off_the_allowlist_is_refused(self):
+        client = Client("live")
+        fake = mock.MagicMock()
+        fake.__enter__.return_value.geturl.return_value = "https://evil.example.com/x"
+        with mock.patch("urllib.request.urlopen", return_value=fake), \
+                self.assertRaises(HostNotAllowed):
+            client.get("https://data.ssb.no/x")
+
     def test_no_other_module_imports_network_libraries(self):
         src = Path(net.__file__).parent
         for path in src.rglob("*.py"):
