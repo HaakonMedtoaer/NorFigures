@@ -45,6 +45,9 @@ claims and which series answers it. It never supplies a number. Every
 - Fixture cases live in `tests/cases/*.json` (text, claims, expected verdicts;
   optional `expected_e2e` where the full loop should differ).
   Keep 15 to 20 of them; bad-input files go in `tests/cases/bad_input/`.
+- Real-world headlines live in `tests/headlines/*.json` (outlet, link, release
+  date, headline, hand-extracted claims, expected verdicts). Quote headlines
+  only, never article bodies. `record-agents` records these too.
 - Never add a host to `ALLOWED_HOSTS` without a decision recorded in `docs/decisions.md`.
 - Fail loudly. A claim that cannot be checked is reported by name, never dropped.
 - Keep values as `Decimal` from the source's own text; precision matters for rounding.

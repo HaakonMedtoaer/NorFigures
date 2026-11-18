@@ -1,0 +1,28 @@
+{
+  "outlet": "Nettavisen",
+  "url": "https://www.nettavisen.no/okonomi/ssb-matvareprisene-steg-8-6-prosent-de-siste-tolv-manedene/s/5-95-2379524",
+  "published": "2025-04-10",
+  "published_note": "SSB release day; to verify against SSB's release calendar",
+  "text": "SSB: Matvareprisene steg 8,6 prosent de siste tolv månedene",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Matvareprisene steg 8,6 prosent de siste tolv månedene",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": null,
+      "unit": "percent",
+      "stated_value": "8.6",
+      "hedged": false,
+      "labels": []
+    }
+  ],
+  "expected": {
+    "exit_code": 2,
+    "verdicts": [
+      "cannot_verify"
+    ]
+  },
+  "why": "Food prices are a sub-index, not KPI. Must not be compared with headline KPI (B25). Release date not confirmed; it does not change the verdict."
+}

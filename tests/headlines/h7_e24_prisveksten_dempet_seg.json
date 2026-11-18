@@ -1,0 +1,28 @@
+{
+  "outlet": "E24",
+  "url": "https://e24.no/norsk-oekonomi/i/EynLgj/prisveksten-dempet-seg-til-2-6-prosent",
+  "published": "2025-04-10",
+  "published_note": "SSB release day; to verify against SSB's release calendar",
+  "text": "Prisveksten dempet seg til 2,6 prosent",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Prisveksten dempet seg til 2,6 prosent",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": null,
+      "unit": "percent",
+      "stated_value": "2.6",
+      "hedged": false,
+      "labels": []
+    }
+  ],
+  "expected": {
+    "exit_code": 0,
+    "verdicts": [
+      "matched"
+    ]
+  },
+  "why": "No month: inferred from the release date (March 2025)."
+}

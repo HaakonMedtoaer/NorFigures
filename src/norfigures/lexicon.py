@@ -124,7 +124,10 @@ def review(raw: dict, data: dict | None = None) -> dict:
             if "lexicon_override" not in labels:
                 labels.append("lexicon_override")
 
-    if h.out_of_scope and c.get("status") in ("checkable", "ambiguous"):
+    general = h.kpi_explicit or h.kpi_jae or h.inflation_generic or h.prices_generic
+    if h.out_of_scope == "sub_index" and general:
+        pass  # a sub-index named as the cause of a KPI move; the claim is still KPI (B25)
+    elif h.out_of_scope and c.get("status") in ("checkable", "ambiguous"):
         override("status", "out_of_scope", f"'{h.out_of_scope}' words")
         c["indicator"] = h.out_of_scope
     if c.get("status") == "checkable" and h.forecast:

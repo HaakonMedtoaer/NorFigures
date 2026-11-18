@@ -25,6 +25,7 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
 | `indicators.kpi_growth_nouns` | headline KPI, 12-month change unless a measure phrase says otherwise (D12) |
 | `indicators.prices_generic` | headline KPI; monthly vs 12-month is ambiguous unless a measure phrase is found (D12) |
 | `out_of_scope` | claim is `out_of_scope`, named by its key (D16) |
+| `out_of_scope.sub_index` | food, electricity, rent, fuel: part of KPI, not KPI itself, so out of scope; **only when** the claim names no overall-inflation word ("prisveksten falt, trukket ned av strømprisene" is still KPI) (B25) |
 | `record_words` | with no number: `no_figure` (D13) |
 
 ```json phrases
@@ -43,6 +44,7 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
     "12_month_change": [
       "siste tolv måneder", "siste 12 måneder", "tolvmånedersveksten", "tolvmånedersvekst",
       "12-månedersveksten", "12-månedersvekst", "fra samme måned i fjor", "fra samme tid i fjor",
+      "de siste tolv månedene", "siste tolv månedene", "de siste 12 månedene", "siste år", "det siste året",
       "årsveksten", "årsvekst", "year on year", "year-on-year", "12-month", "twelve-month"
     ],
     "monthly_change": [
@@ -83,7 +85,13 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
     "unemployment": ["arbeidsledighet", "arbeidsledigheten", "ledighet", "ledigheten", "ledighetsraten", "unemployment"],
     "gdp": ["bnp", "bruttonasjonalprodukt", "bruttonasjonalproduktet", "gdp"],
     "wage_growth": ["lønnsvekst", "lønnsveksten", "wage growth"],
-    "house_prices": ["boligpris", "boligpriser", "boligprisene", "boligprisveksten", "house prices"]
+    "house_prices": ["boligpris", "boligpriser", "boligprisene", "boligprisveksten", "house prices"],
+    "sub_index": [
+      "matpris", "matpriser", "matprisene", "matvarepris", "matvarepriser", "matvareprisene",
+      "strømpris", "strømpriser", "strømprisene", "strømprisen", "husleie", "husleien", "husleiene",
+      "drivstoffprisene", "bensinprisen", "dieselprisen", "energiprisene", "flyprisene",
+      "food prices", "electricity prices", "rents", "fuel prices"
+    ]
   },
   "record_words": [
     "rekord", "rekordhøy", "rekordlav", "rekordsvak", "rekordsterk", "historisk lav",

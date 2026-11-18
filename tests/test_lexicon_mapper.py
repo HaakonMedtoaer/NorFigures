@@ -63,6 +63,14 @@ class ReviewTest(unittest.TestCase):
         c = review(claim("Arbeidsledigheten var 4,5 prosent", indicator="kpi"))
         self.assertEqual((c["status"], c["indicator"]), ("out_of_scope", "unemployment"))
 
+    def test_sub_index_is_out_of_scope(self):
+        c = review(claim("Matvareprisene steg 8,6 prosent de siste tolv månedene"))
+        self.assertEqual((c["status"], c["indicator"]), ("out_of_scope", "sub_index"))
+
+    def test_sub_index_as_cause_stays_kpi(self):
+        c = review(claim("Prisveksten falt til 2,6 prosent, trukket ned av strømprisene"))
+        self.assertEqual(c["status"], "checkable")
+
     def test_agreement_changes_nothing(self):
         c = claim("KPI steg 3,6 prosent siste tolv måneder")
         self.assertEqual(review(c)["labels"], [])

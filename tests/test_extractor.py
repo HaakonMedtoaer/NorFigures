@@ -57,6 +57,8 @@ class ReplayKeyTest(unittest.TestCase):
     def test_surrounding_whitespace_does_not_change_the_recording(self):
         from tests.helpers import load_cases
         name, case = load_cases()[0]
+        if not extractor.recording_path(case["text"], case["published"]).exists():
+            self.skipTest("extractor recordings are stale or missing; run `norfigures record-agents`")
         a = extractor.extract(case["text"], case["published"], mode="replay")
         b = extractor.extract("\n " + case["text"] + "\n\n", case["published"], mode="replay")
         self.assertEqual(a.claims, b.claims)

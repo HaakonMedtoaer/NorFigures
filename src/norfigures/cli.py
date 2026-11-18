@@ -130,7 +130,8 @@ def _agent_mode(offline: bool) -> str:
 def cmd_record_agents(args) -> int:
     """Run the extractor live on every fixture text and save its output."""
     from .agents.extractor import extract
-    cases = sorted((REPO_ROOT / "tests" / "cases").glob("*.json"))
+    cases = (sorted((REPO_ROOT / "tests" / "cases").glob("*.json"))
+             + sorted((REPO_ROOT / "tests" / "headlines").glob("*.json")))
     total_in = total_out = 0
     cost = 0.0
     for p in cases:
@@ -140,6 +141,16 @@ def cmd_record_agents(args) -> int:
         total_out += ex.output_tokens
         cost += ex.cost_usd
         print(f"{p.stem}: {len(ex.claims)} claims, {ex.input_tokens} in / {ex.output_tokens} out")
+    # Recordings for an older prompt or phrase table can never be replayed again.
+    from .agents.extractor import RECORDINGS_DIR, recording_path
+    keep = {recording_path(parse_json(p.read_text(encoding="utf-8"))["text"].strip(),
+                           parse_json(p.read_text(encoding="utf-8")).get("published")).name
+            for p in cases}
+    stale = [f for f in RECORDINGS_DIR.glob("extract_*.json") if f.name not in keep]
+    for f in stale:
+        f.unlink()
+    if stale:
+        print(f"Removed {len(stale)} stale recordings from an older prompt.")
     print(f"\nRecorded {len(cases)} texts with {ex.model if cases else '-'}: "
           f"{total_in} input and {total_out} output tokens, about ${cost:.4f} in total, "
           f"${cost / max(len(cases), 1):.5f} per text.")
@@ -174,7 +185,7 @@ def build_parser() -> argparse.ArgumentParser:
     pc.set_defaults(func=cmd_check)
 
     pr = sub.add_parser("record-agents",
-                        help="run the extractor live on tests/cases and record its outputs")
+                        help="run the extractor live on tests/cases and tests/headlines and record its outputs")
     pr.set_defaults(func=cmd_record_agents)
     return p
 

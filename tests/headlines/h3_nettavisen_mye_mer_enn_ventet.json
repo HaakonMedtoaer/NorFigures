@@ -1,0 +1,28 @@
+{
+  "outlet": "Nettavisen",
+  "url": "https://www.nettavisen.no/okonomi/prisene-steg-mye-mer-enn-ventet-i-februar/s/5-95-2327450",
+  "published": "2025-03-10",
+  "published_note": "SSB release day; to verify against SSB's release calendar",
+  "text": "Prisene steg mye mer enn ventet i februar",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Prisene steg mye mer enn ventet i februar",
+      "status": "no_figure",
+      "indicator": "kpi",
+      "measure": null,
+      "period": "2025-02",
+      "unit": null,
+      "stated_value": null,
+      "hedged": false,
+      "labels": []
+    }
+  ],
+  "expected": {
+    "exit_code": 2,
+    "verdicts": [
+      "cannot_verify"
+    ]
+  },
+  "why": "No number. 'ventet' here is past tense ('than expected'), not a forecast."
+}

@@ -33,7 +33,13 @@ Confirmed against the live APIs on 2026-11-14.
 
 - SSB table 14706 replaced the closed table 05327 (and 03013 for headline CPI)
   at the 2026 rebase. The `KPI` row of 14706 is the canonical headline CPI, so
-  every CPI series reads from one table.
+  every CPI series reads from one table **for periods from 2026-01**.
+- For periods up to 2025-12, the rates **as SSB published them** are in the
+  closed tables 03013 (KPI) and 05327 (KPI-JAE). Rates recalculated in 14706
+  can differ by 0.1 (14706's own note says so): February 2025 KPI was published
+  as 3.6 % but is 3.5 % in 14706. Each SSB series therefore has a `history`
+  entry: for periods up to `until`, read that table instead (B24). Confirmed
+  2026-11-18 against the March 2025 release (KPI 3.6, KPI-JAE 3.4).
 - SSB rate limit observed: 40 requests per 60 seconds.
 - Norges Bank series are business-daily (`B`). There are no weekend values.
 
@@ -44,6 +50,8 @@ Confirmed against the live APIs on 2026-11-14.
     "concept": "Headline CPI, 12-month change",
     "source": "ssb", "frequency": "M", "table": "14706",
     "selection": {"KPIavledetSerie": "KPI", "ContentsCode": "Tolvmanedersendring"},
+    "history": [{"until": "2025-12", "table": "03013",
+                 "selection": {"Konsumgrp": "TOTAL", "ContentsCode": "Tolvmanedersendring"}}],
     "confirmed": "2026-11-14"
   },
   "kpi_monthly": {
@@ -51,6 +59,8 @@ Confirmed against the live APIs on 2026-11-14.
     "concept": "Headline CPI, change from previous month",
     "source": "ssb", "frequency": "M", "table": "14706",
     "selection": {"KPIavledetSerie": "KPI", "ContentsCode": "Manedsendring"},
+    "history": [{"until": "2025-12", "table": "03013",
+                 "selection": {"Konsumgrp": "TOTAL", "ContentsCode": "Manedsendring"}}],
     "confirmed": "2026-11-14"
   },
   "kpi_jae_12m": {
@@ -58,6 +68,8 @@ Confirmed against the live APIs on 2026-11-14.
     "concept": "CPI-ATE (core), 12-month change",
     "source": "ssb", "frequency": "M", "table": "14706",
     "selection": {"KPIavledetSerie": "KPI-JAE", "ContentsCode": "Tolvmanedersendring"},
+    "history": [{"until": "2025-12", "table": "05327",
+                 "selection": {"Konsumgrp": "JAE_TOTAL", "ContentsCode": "Tolvmanedersendring"}}],
     "confirmed": "2026-11-14"
   },
   "policy_rate": {

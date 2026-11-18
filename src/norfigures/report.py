@@ -57,7 +57,8 @@ def _source(res: ClaimResult, series: dict[str, Series]) -> str:
     s = series[r.series_id]
     period = r.observations[-1].period if (r.kind == "point" and r.observations) else r.period
     if s.source == "ssb":
-        return f"SSB, {s.id}, {period}, table {s.table}"
+        table = (r.observations[-1].dims.get("_table") if r.observations else None) or s.table
+        return f"SSB, {s.id}, {period}, table {table}"
     return f"Norges Bank, {s.id}, {period}, {s.flow}/{s.key}"
 
 

@@ -139,6 +139,7 @@ Claude Code wrote the code. I wrote the spec and made the calls; each one is in
 - Four series only: KPI (12-month and monthly change), KPI-JAE (12-month),
   Norges Bank's policy rate and EUR/NOK. Unemployment (AKU) comes next.
 - Compares against the latest published value, not the value as first published.
+  For 2025 and earlier, that is the rate SSB published before its 2026 rebase.
 - Numeric claims only. "Rekordsvak krone" is reported, not checked.
 - Annual averages ("inflasjonen i 2025") are not covered yet.
 
@@ -148,8 +149,9 @@ Claude Code wrote the code. I wrote the spec and made the calls; each one is in
 python -m unittest
 ```
 
-90 tests, fully offline: 20 fixture cases built on real 2026 data (correct,
-wrong, ambiguous, forecasts, mapping traps, no figure), replayed API responses,
+97 tests, fully offline: 20 fixture cases built on real 2026 data (correct,
+wrong, ambiguous, forecasts, mapping traps, no figure), 8 real headlines from
+the February and March 2025 KPI releases, replayed API responses,
 and replayed model output, so the full loop is tested without a key. To
 refresh: `NORFIGURES_RECORD=1 python -m unittest` (data) and
 `norfigures record-agents` (model output; needs a key).

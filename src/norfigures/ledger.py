@@ -24,6 +24,11 @@ _REQUIRED = {
 }
 
 
+def _next_month(month: str) -> str:
+    y, m = int(month[:4]), int(month[5:7])
+    return f"{y + 1:04d}-01" if m == 12 else f"{y:04d}-{m + 1:02d}"
+
+
 class LedgerError(Exception):
     """The ledger is missing or malformed. Exit code 3."""
 
@@ -42,6 +47,23 @@ class Series:
     selection: dict | None = None
     flow: str | None = None
     key: str | None = None
+    # Older periods read from other tables: [{"until": "YYYY-MM", "table", "selection"}],
+    # oldest last-period first. Periods after the last `until` use table/selection (B24).
+    history: tuple = ()
+
+    def segments(self, start: str, end: str) -> list[tuple[str, str, str, dict]]:
+        """Split a YYYY-MM range into (start, end, table, selection) per source table."""
+        out, lo = [], start
+        for h in self.history:
+            if lo > end:
+                break
+            if lo <= h["until"]:
+                hi = min(end, h["until"])
+                out.append((lo, hi, h["table"], h["selection"]))
+                lo = _next_month(hi)
+        if lo <= end:
+            out.append((lo, end, self.table, self.selection))
+        return out
 
     @property
     def ref(self) -> str:
@@ -74,6 +96,16 @@ def load(path: Path | None = None) -> dict[str, Series]:
         missing = [f for f in _REQUIRED[source] if not spec.get(f)]
         if missing:
             raise LedgerError(f"series {sid}: missing {missing}")
+        hist = spec.get("history", [])
+        if hist and source != "ssb":
+            raise LedgerError(f"series {sid}: history is only supported for SSB series")
+        for h in hist:
+            if not (isinstance(h, dict) and re.fullmatch(r"\d{4}-\d{2}", str(h.get("until", "")))
+                    and h.get("table") and isinstance(h.get("selection"), dict)):
+                raise LedgerError(f"series {sid}: each history entry needs until (YYYY-MM), table, selection")
+        if [h["until"] for h in hist] != sorted(h["until"] for h in hist):
+            raise LedgerError(f"series {sid}: history must be in order of 'until'")
+        spec = dict(spec, history=tuple(hist))
         try:
             out[sid] = Series(id=sid, **spec)
         except TypeError as e:

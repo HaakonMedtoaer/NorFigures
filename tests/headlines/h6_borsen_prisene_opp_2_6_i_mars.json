@@ -1,0 +1,28 @@
+{
+  "outlet": "Dagbladet Børsen",
+  "url": "https://borsen.dagbladet.no/nyheter/vi-ma-vaere-talmodige/82949301",
+  "published": "2025-04-10",
+  "published_note": "SSB release day; to verify against SSB's release calendar",
+  "text": "Prisene opp 2,6 prosent i mars - Vi må være tålmodige",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Prisene opp 2,6 prosent i mars",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": "2025-03",
+      "unit": "percent",
+      "stated_value": "2.6",
+      "hedged": false,
+      "labels": []
+    }
+  ],
+  "expected": {
+    "exit_code": 0,
+    "verdicts": [
+      "matched"
+    ]
+  },
+  "why": "'Prisene opp' could be monthly or 12-month (D12); the 12-month rate matches (monthly was -0.7)."
+}

@@ -116,6 +116,7 @@ def parse_jsonstat(d: dict, series_id: str, url: str, retrieved_at: str) -> list
         except InvalidOperation as e:
             raise SourceError(f"non-numeric value {raw!r} from {url}") from e
         dims = dict(zip(ids, combo))
+        dims["_table"] = url.split("/tables/")[1].split("/")[0] if "/tables/" in url else None
         # JSON numbers drop trailing zeros (3.0 arrives as 3). Restore the
         # published precision, which the rounding rule depends on.
         decimals = units.get(dims.get(metric_dim), {}).get("decimals")

@@ -15,8 +15,14 @@ from .sources.base import Observation
 def fetch_series(client: Client, series: Series, start: str | None = None,
                  end: str | None = None, last_n: int | None = None) -> list[Observation]:
     if series.source == "ssb":
-        return ssb.fetch(client, series.id, series.table, series.selection,
-                         start=start, end=end, last_n=last_n)
+        if not (start or end) or not series.history:
+            return ssb.fetch(client, series.id, series.table, series.selection,
+                             start=start, end=end, last_n=last_n)
+        # Periods before a rebase come from the table that holds them as published (B24).
+        out: list[Observation] = []
+        for lo, hi, table, selection in series.segments(start or end, end or start):
+            out += ssb.fetch(client, series.id, table, selection, start=lo, end=hi)
+        return out
     if series.source == "norges_bank":
         return norges_bank.fetch(client, series.id, series.flow, series.key,
                                  start=start, end=end, last_n=last_n)

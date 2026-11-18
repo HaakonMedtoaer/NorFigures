@@ -1,0 +1,28 @@
+{
+  "outlet": "Dagbladet (sol.no)",
+  "url": "https://sol.no/nyheter/rentekuttet-er-definitivt-avlyst/82801339",
+  "published": "2025-03-10",
+  "published_note": "SSB release day; to verify against SSB's release calendar",
+  "text": "– Rentekuttet er definitivt avlyst",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Rentekuttet er definitivt avlyst",
+      "status": "forecast",
+      "indicator": "policy_rate",
+      "measure": "change",
+      "period": null,
+      "unit": null,
+      "stated_value": null,
+      "hedged": false,
+      "labels": []
+    }
+  ],
+  "expected": {
+    "exit_code": 2,
+    "verdicts": [
+      "cannot_verify"
+    ]
+  },
+  "why": "About a future rate decision, with no number."
+}

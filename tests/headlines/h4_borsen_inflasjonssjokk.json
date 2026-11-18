@@ -1,0 +1,28 @@
+{
+  "outlet": "Dagbladet Børsen",
+  "url": "https://borsen.dagbladet.no/nyheter/inflasjonssjokk-darlige-nyheter/82801130",
+  "published": "2025-03-10",
+  "published_note": "SSB release day; to verify against SSB's release calendar",
+  "text": "Inflasjonssjokk: - Dårlige nyheter",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Inflasjonssjokk",
+      "status": "no_figure",
+      "indicator": "kpi",
+      "measure": null,
+      "period": null,
+      "unit": null,
+      "stated_value": null,
+      "hedged": false,
+      "labels": []
+    }
+  ],
+  "expected": {
+    "exit_code": 2,
+    "verdicts": [
+      "cannot_verify"
+    ]
+  },
+  "why": "No number. An extractor may also return no claim at all; both end in exit 2."
+}

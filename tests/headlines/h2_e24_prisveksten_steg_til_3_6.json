@@ -1,0 +1,28 @@
+{
+  "outlet": "E24",
+  "url": "https://e24.no/boers-og-finans/i/lwkgbG/prisveksten-steg-til-3-6-prosent-i-februar-hoeyere-enn-ventet",
+  "published": "2025-03-10",
+  "published_note": "SSB release day; to verify against SSB's release calendar",
+  "text": "Prisveksten steg til 3,6 prosent i februar",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Prisveksten steg til 3,6 prosent i februar",
+      "status": "checkable",
+      "indicator": "kpi",
+      "measure": "12_month_change",
+      "period": "2025-02",
+      "unit": "percent",
+      "stated_value": "3.6",
+      "hedged": false,
+      "labels": []
+    }
+  ],
+  "expected": {
+    "exit_code": 0,
+    "verdicts": [
+      "matched"
+    ]
+  },
+  "why": "Correct when published. 'steg til' gives a level of inflation, not a change in points."
+}

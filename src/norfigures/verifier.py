@@ -159,6 +159,9 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
     if claim.status == "no_figure":
         return cannot("no_figure", "No number to check.")
     if claim.status == "out_of_scope":
+        if claim.indicator == "sub_index":
+            return cannot("out_of_scope", "A sub-index such as food or electricity prices is part "
+                                          "of KPI, not KPI itself; it is not covered yet.")
         return cannot("out_of_scope", f"Indicator '{claim.indicator}' is not covered yet.")
     if not claim.mappings:
         return cannot("ambiguous", "The claim could not be tied to a series.")

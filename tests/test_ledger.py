@@ -16,6 +16,23 @@ class LedgerTest(unittest.TestCase):
             with self.subTest(series=s.id):
                 self.assertRegex(s.confirmed, r"^\d{4}-\d{2}-\d{2}$")
 
+    def test_history_segments(self):
+        s = load()["kpi_12m"]
+        self.assertEqual(s.segments("2025-11", "2026-02"), [
+            ("2025-11", "2025-12", "03013", s.history[0]["selection"]),
+            ("2026-01", "2026-02", "14706", s.selection)])
+        self.assertEqual([seg[2] for seg in s.segments("2025-02", "2025-02")], ["03013"])
+        self.assertEqual([seg[2] for seg in s.segments("2026-10", "2026-10")], ["14706"])
+
+    def test_published_2025_rates_come_from_closed_tables(self):
+        from norfigures.fetch import fetch_series
+        from norfigures.net import Client
+        series = load()
+        kpi = fetch_series(Client("replay"), series["kpi_12m"], start="2025-02", end="2025-02")
+        jae = fetch_series(Client("replay"), series["kpi_jae_12m"], start="2025-02", end="2025-02")
+        self.assertEqual((str(kpi[0].value), kpi[0].dims["_table"]), ("3.6", "03013"))
+        self.assertEqual((str(jae[0].value), jae[0].dims["_table"]), ("3.4", "05327"))
+
     def test_every_source_maps_to_an_allowlisted_host(self):
         from norfigures.sources import norges_bank, ssb
         for base in (ssb.BASE, norges_bank.BASE):
