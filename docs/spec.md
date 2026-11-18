@@ -333,3 +333,31 @@ The README's first screen shows an animation of a run instead of a terminal reco
 | Hosting | None needed for a CLI. |
 | MCP dependency | Stdlib-only implementation of the protocol, or one allowed dependency for the server alone. Decide in weekend 3. |
 | Edge-case defaults | All rows decided (D4 to D16). See docs/decisions.md. |
+
+## 18. What we discovered during the build
+
+The MVP works as planned: the full loop passes all 20 test cases on real Claude Haiku 5.5 output, at about $0.0006 per check. Sections 1 to 17 are the original plan, left as written. Building it turned up the findings below, and each one changed the plan for the reason given. The Ref column points to `docs/decisions.md`.
+
+| Date | Area | What we found | What we changed | Ref |
+| --- | --- | --- | --- | --- |
+| 14 Nov | Data | SSB closed tables 05327 and 03013 when it rebased CPI to 2025 = 100 | All CPI series read from table 14706, which holds both KPI and KPI-JAE | B1 |
+| 14 Nov | Data | SSB's JSON sends 3.0 as the number 3, losing a decimal the rounding rule needs | Values are restored to the decimals the table says it publishes | B5 |
+| 14 Nov | Data | SSB allows 40 requests a minute; neither API needs a key | Noted in the ledger; no key handling needed | Ledger |
+| 14 Nov | Data | Norges Bank series have business days only, and send values like "4" with no decimals | The rate on a date is the last observation on or before it; rounding handles "4" vs "4,0" | B2, D15 |
+| 14 Nov | Process | The cloud session could not reach the data APIs | A cloud environment that allows only the two official hosts | — |
+| 15 Nov | Design | An ambiguous claim needs two or more readings, but the spec's claim had room for one mapping | A claim carries a list of mappings, canonical first | B8, D4 |
+| 15 Nov | Design | "Styringsrenten var 4,5 % i oktober" has no single official value | A month on a daily series is checked against that month's low and high | B10 |
+| 15 Nov | Design | There is no release calendar in the data; SSB publishes KPI around the 10th | On days 1 to 15, both possible months are checked | B11 |
+| 15 Nov | Design | The extractor could call a future period checkable | Code treats any period after the publication date as a forecast | B13 |
+| 15 Nov | Design | Most of what people write about these figures is a predictable phrase | Phrase tables, applied by code after the model; where they disagree, the tables win and the report says so | D19 |
+| 15 Nov | Design | With phrase tables, choosing the series became a lookup | The mapper agent was dropped; mapping is plain code | B18 |
+| 15 Nov | AI | Extraction is a narrow, well-defined task | Claude Haiku 5.5 instead of a larger model | D17 |
+| 15 Nov | AI | The AI step needs outside packages; nothing else does | Two layers: a standard-library core, and an optional install for the AI step and MCP server | D18 |
+| 15 Nov | AI | "Never rewrite a number" can be checked, not just asked for | Code rejects any claim that is not word for word in the text, or whose number is not in it | B20 |
+| 15 Nov | Process | The cloud session cannot call the Anthropic API with a personal key | Model outputs are recorded once on a personal computer; tests replay them | B21 |
+| 15 Nov | Design | Real wording puts words between verb and "med": "økte renten med 0,25" | The change-verb rule allows words in between | B22 |
+| 18 Nov | AI | First recorded run: 17 of 20 cases passed. Haiku called core inflation a "level" once and left one measure empty | The mapping rules now set the measure for KPI claims, with a note in the report | B23 |
+| 18 Nov | Process | The text pipeline crashed right after extraction; no test had run that step without a model | Fixed, and covered by a test that needs no recordings | — |
+| 18 Nov | Process | Reading text from a file adds a newline, which changed the recording key | Text is trimmed before extraction | — |
+| 18 Nov | Process | The pre-commit hook blocked the model's host in the source code | That host is allowed in exactly one module, the one that calls the model | B19 |
+| 18 Nov | Design | A terminal recording would not show which part does what | The README gets an animation with one indicator per worker | Section 14 |
