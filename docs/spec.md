@@ -361,3 +361,5 @@ The MVP works as planned: the full loop passes all 20 test cases on real Claude 
 | 18 Nov | Process | Reading text from a file adds a newline, which changed the recording key | Text is trimmed before extraction | — |
 | 18 Nov | Process | The pre-commit hook blocked the model's host in the source code | That host is allowed in exactly one module, the one that calls the model | B19 |
 | 18 Nov | Design | A terminal recording would not show which part does what | The README gets an animation with one indicator per worker | Section 14 |
+| 18 Nov | Data | Real headlines from March 2025: SSB's rebased table 14706 recalculates older rates. February 2025 KPI was published as 3.6 % but is 3.5 % in 14706, so correct headlines were flagged as wrong | Periods up to December 2025 read the closed tables that hold the rates as published (03013 for KPI, 05327 for KPI-JAE) | B24, D6 |
+| 18 Nov | Design | "Matvareprisene steg 8,6 prosent" would have been compared with overall KPI and flagged as wrong | Sub-indices (food, electricity, rent, fuel) are out of scope, unless the claim also names overall inflation | B25 |
