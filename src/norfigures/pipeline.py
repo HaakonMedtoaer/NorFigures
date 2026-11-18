@@ -66,6 +66,8 @@ def prepare(extracted: list[dict], series: dict[str, Series], log: RunLog) -> li
         if c["status"] == "checkable" and not ids:
             c["status"] = "ambiguous"
             c["labels"] = [*c.get("labels", []), "unmapped"]
+        if ids:
+            _align_measure(c, series[ids[0]])
         if note:
             c["notes"] = (c.get("notes", "") + " " + note).strip()
         c["mappings"] = [{"series_id": i} for i in ids]
@@ -73,6 +75,27 @@ def prepare(extracted: list[dict], series: dict[str, Series], log: RunLog) -> li
                  claim_status=c["status"], labels=c.get("labels", []))
         out.append(c)
     return out
+
+
+def _align_measure(c: dict, canonical: Series) -> None:
+    """The mapping rules (D12) decide the measure, not the extractor.
+
+    Inflation is always a change (12-month or monthly), never a level; a rate or
+    exchange rate is a level unless a change verb made it a change.
+    """
+    old = c.get("measure")
+    if c.get("indicator") in ("kpi", "kpi_jae"):
+        new = canonical.measure
+    elif old in (None, "level", "change"):
+        new = old or "level"
+    else:
+        new = "level"
+    if new != old:
+        c["measure"] = new
+        if old is not None:
+            c["notes"] = (c.get("notes", "") + f" Measure set to {new!r} by the mapping "
+                          f"rules (D12); the extractor said {old!r}.").strip()
+            c["labels"] = [*c.get("labels", []), "measure_from_rules"]
 
 
 def check_text(text: str, client: Client, series: dict[str, Series], agent_mode: str,

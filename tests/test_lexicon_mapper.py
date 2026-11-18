@@ -106,6 +106,25 @@ class MapperTest(unittest.TestCase):
 class PrepareTest(unittest.TestCase):
     """The text pipeline's mapping step, without any model or recording."""
 
+    def test_rules_decide_the_measure(self):
+        # Seen from Haiku: core inflation given as 'level', and an ambiguous
+        # 'Prisene steg' with no measure at all.
+        from norfigures.events import RunLog
+        from norfigures.pipeline import prepare
+        out = prepare([
+            claim("Kjerneinflasjonen (KPI-JAE) var 3,0 prosent i oktober.",
+                  indicator="kpi_jae", measure="level"),
+            claim("Prisene steg 0,3 prosent i oktober", measure=None, id="c2"),
+            claim("Styringsrenten er 4,5 prosent", indicator="policy_rate", measure=None, id="c3"),
+        ], load(), RunLog())
+        self.assertEqual(out[0]["measure"], "12_month_change")
+        self.assertIn("measure_from_rules", out[0]["labels"])
+        self.assertEqual(out[1]["measure"], "12_month_change")
+        self.assertEqual([m["series_id"] for m in out[1]["mappings"]], ["kpi_12m", "kpi_monthly"])
+        self.assertEqual(out[2]["measure"], "level")
+        from norfigures.claims import validate
+        self.assertEqual(len(validate(out, load())), 3)
+
     def test_prepare_maps_and_logs_each_claim(self):
         from norfigures.events import RunLog
         from norfigures.pipeline import prepare

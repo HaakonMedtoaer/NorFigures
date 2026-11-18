@@ -65,6 +65,7 @@ should confirm or overturn them.
 | B19 | The model is called only through `agents/llm.py`, pinned to `https://api.anthropic.com` (override: `NORFIGURES_ANTHROPIC_BASE_URL`). The data allowlist in `net.py` stays two hosts. The model gets no tools. | Model traffic and data traffic never mix; the model cannot fetch or change a number. |
 | B20 | Extractor output is checked in code: each `source_text` must be a verbatim span of the input, and each `stated_value` must be a number in that span. Failure is a failed extraction (exit 3). | Enforces "never rewrite a number" instead of asking for it. |
 | B21 | Model outputs are recorded per (model, prompt, publication date, text) in `tests/recorded/agents/`. A changed prompt or phrase table means re-recording; until then the end-to-end test skips with a message rather than passing. | Tests stay offline and free; stale recordings never pass silently. |
+| B23 | After mapping, the mapper's canonical series sets the claim's measure for KPI and KPI-JAE (D12); for a rate or exchange rate an empty measure becomes `level`. A changed measure is noted and labelled `measure_from_rules`. | First recorded run: Haiku gave core inflation as `level` and left "Prisene steg" without a measure. D12 is a code rule, so code applies it. |
 | B22 | Phrase-table rule for change verbs: the verb, then "med"/"by" later in the claim ("økte renten med 0,25"). KPI growth nouns ("KPI-veksten") mean 12-month change by default. | Real wording puts words between the verb and "med"; "KPI-veksten" is read like "inflasjonen". |
 
 ## Pending
