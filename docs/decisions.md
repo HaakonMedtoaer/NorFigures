@@ -83,3 +83,7 @@ All spec section 7 edge cases are decided (D4 to D16).
   cases on recorded Claude Haiku 5.5 output. Measured: about 4,400 input and
   230 output tokens per text; $0.011 for all 20 texts, about $0.0006 per check
   (Haiku 5.5 list prices, 2026-11-15). Haiku was enough; no Sonnet needed (D17).
+- 2026-11-18, after B24/B25: re-recorded 28 texts (20 cases + 8 real headlines
+  from the February and March 2025 releases). All pass end to end, no false
+  alarms on the headlines. 131,864 input and 6,062 output tokens, $0.0162 in
+  total, $0.00058 per text.
