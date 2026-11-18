@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/HaakonMedtoaer/NorFigures/actions/workflows/tests.yml/badge.svg)](https://github.com/HaakonMedtoaer/NorFigures/actions/workflows/tests.yml)
 
-*Kort på norsk: NorFigures leser en tekst, finner tall om inflasjon, styringsrente og eurokurs, henter de offisielle tallene fra SSB og Norges Bank, og sier fra når tallet i teksten ikke stemmer.*
+*Kort på norsk: NorFigures leser input og finner tall om inflasjon, styringsrente og eurokurs, henter de offisielle tallene fra SSB og Norges Bank, og sier fra når tallet i teksten ikke stemmer.*
 
 **People and AI models both put confident, wrong numbers in documents.** NorFigures
 checks the economic figures in a Norwegian text against the official sources and
