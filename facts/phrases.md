@@ -60,9 +60,11 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
     "12_month_change_regex": [
       "fra (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember) (\\d{4}) til \\1 (\\d{4})",
       "(sammenlignet med|enn i|enn) (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember)( \\d{4})? (i fjor|for ett år siden)",
+      "i (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember) (\\d{4}) enn i \\1 (\\d{4})",
       "for ett år siden", "sammenlignet med samme måned i fjor"
     ],
     "monthly_change_regex": [
+      "fra (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember) (\\d{4}) til (?!\\1)(januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember) (\\d{4})",
       "fra (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember) til (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember)",
       "from (january|february|march|april|may|june|july|august|september|october|november|december) to (january|february|march|april|may|june|july|august|september|october|november|december)"
     ]

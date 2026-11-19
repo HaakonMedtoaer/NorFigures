@@ -13,8 +13,16 @@ from .sources.base import Observation
 
 
 def fetch_series(client: Client, series: Series, start: str | None = None,
-                 end: str | None = None, last_n: int | None = None) -> list[Observation]:
+                 end: str | None = None, last_n: int | None = None,
+                 same_table: bool = False) -> list[Observation]:
+    """Fetch one series. `same_table` takes the whole range from the table that holds
+    the last period, so a change between two months is computed within one table,
+    as SSB does (B33)."""
     if series.source == "ssb":
+        if same_table and series.history and (start or end):
+            lo, hi = start or end, end or start
+            _, _, table, selection = series.segments(hi, hi)[0]
+            return ssb.fetch(client, series.id, table, selection, start=lo, end=hi)
         if not (start or end) or not series.history:
             return ssb.fetch(client, series.id, series.table, series.selection,
                              start=start, end=end, last_n=last_n)

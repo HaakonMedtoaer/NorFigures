@@ -23,7 +23,7 @@ def map_claim(raw: dict, series: dict[str, Series]) -> tuple[list[str], str | No
     if raw.get("status") != "checkable":
         return [], None
     ind, measure = raw.get("indicator"), raw.get("measure")
-    h = hints(raw.get("source_text", ""))
+    h = hints(raw.get("source_text", ""), number=raw.get("stated_value"))
 
     if ind in ("policy_rate", "eurnok"):
         sid = _find(series, ind, "level")

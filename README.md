@@ -149,10 +149,10 @@ Claude Code wrote the code. I wrote the spec and made the calls; each one is in
 python -m unittest
 ```
 
-101 tests, fully offline: 20 fixture cases built on real 2026 data (correct,
+105 tests, fully offline: 20 fixture cases built on real 2026 data (correct,
 wrong, ambiguous, forecasts, mapping traps, no figure), 8 real headlines from
-the February and March 2025 KPI releases, 4 long real texts (SSB release
-articles and Norges Bank press releases, 41 claims, where any mismatch is a
+the February and March 2025 KPI releases, 5 long real texts (SSB release
+articles and Norges Bank press releases, 61 claims, where any mismatch is a
 false alarm), replayed API responses,
 and replayed model output, so the full loop is tested without a key. To
 refresh: `NORFIGURES_RECORD=1 python -m unittest` (data) and

@@ -42,10 +42,11 @@ class Run:
         self._registry: set[int] = set()
         self._cache: dict[tuple, list[Observation]] = {}
 
-    def fetch(self, s: Series, start: str, end: str, claim_id: str | None = None) -> list[Observation]:
-        key = (s.id, start, end)
+    def fetch(self, s: Series, start: str, end: str, claim_id: str | None = None,
+              same_table: bool = False) -> list[Observation]:
+        key = (s.id, start, end, same_table)
         if key not in self._cache:
-            obs = fetch_series(self.client, s, start=start, end=end)
+            obs = fetch_series(self.client, s, start=start, end=end, same_table=same_table)
             self._registry.update(id(o) for o in obs)
             self._cache[key] = obs
             self.log.emit("fetch", "ok", claim_id, series_id=s.id, start=start, end=end,
@@ -255,7 +256,7 @@ def _read(claim: Claim, s: Series, period: str, run: Run) -> Reading:
         # Change in the rate itself, in points (B27): this month's rate minus last month's.
         month = period if k == "month" else period[:7]
         prev = periods.add_months(month, -1)
-        obs = run.fetch(s, prev, month, claim.id)
+        obs = run.fetch(s, prev, month, claim.id, same_table=True)
         r = Reading(s.id, month, "change")
         if len(obs) == 2 and obs[0].period == prev and obs[1].period == month:
             r.observations = [obs[0], obs[1]]

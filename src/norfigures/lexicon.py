@@ -76,23 +76,54 @@ class Hints:
     record_word: str | None = None
 
 
-def hints(text: str, data: dict | None = None) -> Hints:
+def _number_pos(low: str, number: str | None) -> int | None:
+    """Where the claim's own number stands in the text ('3.6' matches '3,6')."""
+    if not number:
+        return None
+    rx = r"(?<![\d,.])" + re.escape(str(number)).replace(r"\.", "[.,]") + r"(?![\d])"
+    m = re.search(rx, low.replace("−", "-"))
+    return m.start() if m else None
+
+
+def _spans(low: str, phrases: list[str], regexes: list[str]) -> list[tuple[int, int, str]]:
+    out = [(m.start(), m.end(), p) for p in phrases for m in _pattern(p).finditer(low)]
+    out += [(m.start(), m.end(), m.group(0)) for rx in regexes for m in re.finditer(rx, low)]
+    return out
+
+
+def hints(text: str, data: dict | None = None, number: str | None = None) -> Hints:
+    """What the phrase tables see. With `number`, sentence-level phrases that belong
+    to another figure in the same span are ignored: the measure phrase nearest the
+    number wins, and "prosentpoeng" counts only right after it (B32)."""
     data = data or load()
     h = Hints()
     h.hedges = found(text, data["hedges"])
     h.forecast = found(text, data["forecast_markers"])
 
-    m12 = found(text, data["measures"]["12_month_change"])
-    mm = found(text, data["measures"]["monthly_change"])
     low = text.lower()
-    mm += [m.group(0) for rx in data["measures"].get("monthly_change_regex", [])
-           for m in [re.search(rx, low)] if m]
-    m12 += [m.group(0) for rx in data["measures"].get("12_month_change_regex", [])
-            for m in [re.search(rx, low)] if m]
+    ms = data["measures"]
+    m12 = _spans(low, ms["12_month_change"], ms.get("12_month_change_regex", []))
+    mm = _spans(low, ms["monthly_change"], ms.get("monthly_change_regex", []))
+    pos = _number_pos(low, number)
+    if m12 and mm and pos is not None:
+        # Use the phrase in the number's own clause ("steg 0,6 prosent fra desember til
+        # januar, og var 3,6 prosent høyere enn for ett år siden"); else the nearest (B32).
+        cuts = [0] + [m.end() for m in re.finditer(r",\s+|;\s+|\s+og\s+|\s+men\s+|\s+mens\s+", low)] + [len(low) + 1]
+        lo_c = max(c for c in cuts if c <= pos)
+        hi_c = min(c for c in cuts if c > pos)
+        inside = lambda sp: lo_c <= sp[0] < hi_c
+        c12, cm = [sp for sp in m12 if inside(sp)], [sp for sp in mm if inside(sp)]
+        if bool(c12) != bool(cm):
+            m12, mm = c12, cm
+        else:
+            dist = lambda sp: 0 if sp[0] <= pos < sp[1] else min(abs(sp[0] - pos), abs(sp[1] - pos))
+            best12, bestm = min(m12, key=dist), min(mm, key=dist)
+            if dist(best12) != dist(bestm):
+                m12, mm = ([best12], []) if dist(best12) < dist(bestm) else ([], [bestm])
     if m12 and not mm:
-        h.measure, h.measure_phrase = "12_month_change", m12[0]
+        h.measure, h.measure_phrase = "12_month_change", m12[0][2]
     elif mm and not m12:
-        h.measure, h.measure_phrase = "monthly_change", mm[0]
+        h.measure, h.measure_phrase = "monthly_change", mm[0][2]
 
     for verb in data["change_verbs"]:
         m = _pattern(verb).search(low)
@@ -112,7 +143,12 @@ def hints(text: str, data: dict | None = None) -> Hints:
         if found(text, words):
             h.out_of_scope = key
             break
-    for key, patterns in ({} if h.out_of_scope else data.get("out_of_scope_regex", {})).items():
+    regexes = data.get("out_of_scope_regex", {})
+    if h.out_of_scope == "sub_index":
+        # A listed word ("husleie") may be a cause; "prisene på X" still names the subject.
+        h.out_of_scope_specific = any(re.search(rx, low) for rx in regexes.get("sub_index", [])
+                                      if "(på|for)" in rx)
+    for key, patterns in ({} if h.out_of_scope else regexes).items():
         hits = [rx for rx in patterns if re.search(rx, low)]
         if hits:
             # Only "prisene på X" names its subject outright; a compound word may be a cause.
@@ -121,6 +157,11 @@ def hints(text: str, data: dict | None = None) -> Hints:
             break
     pw = found(text, data.get("points_words", []))
     h.points = pw[0] if pw else None
+    if h.points and pos is not None:
+        after = low[pos:pos + 40]
+        words = "|".join(re.escape(w) for w in data.get("points_words", []))
+        if not re.match(r"[-−]?\d+(?:[.,]\d+)?\s*(?:" + words + r")", after):
+            h.points = None   # "prosentpoeng" belongs to another figure in the span
     down = bool(found(text, data.get("direction_down", [])))
     up = bool(found(text, data.get("direction_up", [])))
     h.direction = -1 if down and not up else (1 if up and not down else 0)
@@ -136,7 +177,7 @@ def review(raw: dict, data: dict | None = None) -> dict:
     c = dict(raw)
     labels = list(c.get("labels") or [])
     notes = [c["notes"]] if isinstance(c.get("notes"), str) and c["notes"] else []
-    h = hints(c.get("source_text", ""), data)
+    h = hints(c.get("source_text", ""), data, number=c.get("stated_value"))
 
     def override(field_name: str, value, why: str) -> None:
         if c.get(field_name) != value:

@@ -40,6 +40,27 @@ class PhraseTablesTest(unittest.TestCase):
         self.assertIsNone(hints("Prisene steg 0,3 % i oktober").measure)
 
 
+class SentenceLevelTest(unittest.TestCase):
+    """Several figures in one span: each gets the phrases of its own clause (B32)."""
+
+    T = ("KPI steg 0,6 prosent fra desember 2025 til januar 2026 og var i januar "
+         "3,6 prosent høyere enn for ett år siden")
+
+    def test_each_number_gets_its_own_measure(self):
+        self.assertEqual(hints(self.T, number="0.6").measure, "monthly_change")
+        self.assertEqual(hints(self.T, number="3.6").measure, "12_month_change")
+
+    def test_points_only_right_after_the_number(self):
+        t = ("KPI-JAE steg 3,4 prosent fra januar 2025 til januar 2026, noe som er "
+             "0,2 prosentpoeng høyere enn tolvmånedersveksten i desember 2025")
+        self.assertIsNone(hints(t, number="3.4").points)
+        self.assertEqual(hints(t, number="0.2").points, "prosentpoeng")
+
+    def test_direction(self):
+        self.assertEqual(hints("en nedgang på 0,3 prosentpoeng").direction, -1)
+        self.assertEqual(hints("0,2 prosentpoeng høyere").direction, 1)
+
+
 class ReviewTest(unittest.TestCase):
     def test_hedge_word_sets_hedged(self):
         c = review(claim("kjerneinflasjonen er rundt 3 prosent", indicator="kpi_jae"))

@@ -33,6 +33,18 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual((str(kpi[0].value), kpi[0].dims["_table"]), ("3.6", "03013"))
         self.assertEqual((str(jae[0].value), jae[0].dims["_table"]), ("3.4", "05327"))
 
+    def test_change_across_the_rebase_uses_one_table(self):
+        # SSB: KPI-JAE rose 0.2 points from Dec 2025 to Jan 2026, computed within
+        # table 14706 (3.2 -> 3.4); the published Dec value in 05327 is 3.1 (B33).
+        from norfigures.fetch import fetch_series
+        from norfigures.net import Client
+        s = load()["kpi_jae_12m"]
+        mixed = fetch_series(Client("replay"), s, start="2025-12", end="2026-01")
+        same = fetch_series(Client("replay"), s, start="2025-12", end="2026-01", same_table=True)
+        self.assertEqual([str(o.value) for o in mixed], ["3.1", "3.4"])
+        self.assertEqual([str(o.value) for o in same], ["3.2", "3.4"])
+        self.assertEqual({o.dims["_table"] for o in same}, {"14706"})
+
     def test_every_source_maps_to_an_allowlisted_host(self):
         from norfigures.sources import norges_bank, ssb
         for base in (ssb.BASE, norges_bank.BASE):
