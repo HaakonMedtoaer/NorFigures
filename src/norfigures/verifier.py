@@ -171,12 +171,12 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
     # 2. Resolve the period(s).
     reference = published or today
     if claim.period:
-        if periods.kind(claim.period) == "year":
-            return cannot("annual_not_supported",
-                          "Annual figures are not covered yet; only monthly and daily values.")
         if periods.period_start(claim.period) > reference:
             return cannot("forecast_not_checkable",
                           f"Period {claim.period} is after {reference.isoformat()}; it cannot be published yet.")
+        if periods.kind(claim.period) == "year":
+            return cannot("annual_not_supported",
+                          "Annual figures are not covered yet; only monthly and daily values.")
         candidates = [claim.period]
     elif published is None:
         return cannot("period_missing", "No period in the claim and no --published date to infer one from.")
@@ -199,6 +199,11 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
         if candidates is None:
             if s.frequency == "M":
                 plist = periods.infer_monthly(published)
+            elif s.id == "policy_rate" and "rate_decision" in claim.labels:
+                # A decision announced today takes effect tomorrow (B29).
+                plist = [(published + timedelta(days=1)).isoformat()]
+                res.notes.append("Rate decision: checked against the rate in force the day after "
+                                 f"publication ({plist[0]}).")
             else:
                 plist = [published.isoformat()]
         else:
@@ -212,7 +217,8 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
         return res
 
     if claim.measure == "change" and claim.unit in (None, "percent") and \
-            any(run.series[r.series_id].unit == "percent" for r in res.readings):
+            any(run.series[r.series_id].unit == "percent" and run.series[r.series_id].frequency != "M"
+                for r in res.readings):
         res.add_label("unit_assumed")
         res.notes.append("A change in a rate is read as percentage points (D11).")
     if claim.hedged:
@@ -232,8 +238,8 @@ def _mapping_problem(claim: Claim, s: Series, check_measure: bool = True) -> str
     if not check_measure:
         pass
     elif claim.measure == "change":
-        if s.measure != "level":
-            return f"a change can only be checked on a level series, not '{s.measure}'"
+        if s.frequency == "M" and claim.unit not in (None, "percentage_points"):
+            return "a change in an inflation rate is in percentage points"
     elif claim.measure != s.measure:
         return f"claim measure '{claim.measure}' does not match series measure '{s.measure}'"
     if claim.unit == "nok_per_eur" and s.unit != "nok_per_eur":
@@ -245,6 +251,20 @@ def _mapping_problem(claim: Claim, s: Series, check_measure: bool = True) -> str
 
 def _read(claim: Claim, s: Series, period: str, run: Run) -> Reading:
     k = periods.kind(period)
+    if s.frequency == "M" and claim.measure == "change":
+        # Change in the rate itself, in points (B27): this month's rate minus last month's.
+        month = period if k == "month" else period[:7]
+        prev = periods.add_months(month, -1)
+        obs = run.fetch(s, prev, month, claim.id)
+        r = Reading(s.id, month, "change")
+        if len(obs) == 2 and obs[0].period == prev and obs[1].period == month:
+            r.observations = [obs[0], obs[1]]
+            r.official_value = obs[1].value - obs[0].value
+            r.note = f"{s.concept}: {prev} {obs[0].value} -> {month} {obs[1].value}"
+        else:
+            r.note = f"{s.id} has no values for both {prev} and {month}"
+        return r
+
     if s.frequency == "M":
         month = period if k == "month" else period[:7]
         obs = run.fetch(s, month, month, claim.id)
@@ -302,9 +322,21 @@ def _read(claim: Claim, s: Series, period: str, run: Run) -> Reading:
 def _decide(res: ClaimResult, run: Run) -> None:
     claim = res.claim
     stated, hedged = claim.stated_value, claim.hedged
+    direction = 0
+    if any(r.kind == "change" for r in res.readings):
+        from .lexicon import hints
+        direction = hints(claim.source_text).direction
+        if direction == 0:
+            res.add_label("direction_unknown")
+            res.notes.append("Direction of the change not read from the text; only its size is compared.")
     for r in res.readings:
         if r.kind == "range" and r.low is not None:
             r.matched = compare_range(stated, r.low, r.high, hedged)
+        elif r.kind == "change" and r.official_value is not None:
+            # "en nedgang på 0,3 prosentpoeng" is -0.3 (B31).
+            signed = abs(stated) * direction if direction else stated.copy_abs()
+            official = r.official_value if direction else r.official_value.copy_abs()
+            r.matched = compare_point(signed, official, hedged)
         elif r.official_value is not None:
             r.matched = compare_point(stated, r.official_value, hedged)
 

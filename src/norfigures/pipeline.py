@@ -85,7 +85,7 @@ def _align_measure(c: dict, canonical: Series) -> None:
     """
     old = c.get("measure")
     if c.get("indicator") in ("kpi", "kpi_jae"):
-        new = canonical.measure
+        new = "change" if old == "change" else canonical.measure
     elif old in (None, "level", "change"):
         new = old or "level"
     else:

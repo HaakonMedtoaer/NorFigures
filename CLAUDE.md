@@ -48,6 +48,9 @@ claims and which series answers it. It never supplies a number. Every
 - Real-world headlines live in `tests/headlines/*.json` (outlet, link, release
   date, headline, hand-extracted claims, expected verdicts). Quote headlines
   only, never article bodies. `record-agents` records these too.
+- Long real texts live in `tests/longtexts/*.json`: SSB articles (CC BY 4.0, note
+  any change) and Norges Bank press releases (unchanged, Norges Bank as source).
+  Every figure in them is correct, so any mismatch is a false alarm.
 - Never add a host to `ALLOWED_HOSTS` without a decision recorded in `docs/decisions.md`.
 - Fail loudly. A claim that cannot be checked is reported by name, never dropped.
 - Keep values as `Decimal` from the source's own text; precision matters for rounding.

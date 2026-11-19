@@ -29,6 +29,29 @@ reported as out of scope.
 | `stated_value` | The number exactly as written in `source_text`, digits and decimal comma included ("3,1", "4,0", "12,00"). Null if there is no number. |
 | `hedged` | true when the figure is approximate ("rundt", "omtrent", "nærmere", "about"). |
 
+## Real-text rules
+
+Learned from SSB release articles and Norges Bank press releases (B26 to B31).
+
+- **Name the subject in the span.** If the words saying what the figure is about
+  come earlier in the same sentence, include them in `source_text`: "Til tross for
+  at prisene på elektrisitet ... falt noe, var de 12,8 prosent høyere ...". If the
+  subject is in the previous sentence ("En oppgang på 0,6 prosentpoeng fra
+  januar" after a sentence about KPI-JAE), keep the span to the claim's own
+  sentence and set `indicator` from the sentence it continues.
+- **One claim per figure.** "steg fra 3,4 prosent i september til 3,6 prosent i
+  oktober" is two claims, each with its own period. For a rate decision, "ned fra
+  4,5 til 4,25 prosent" is one claim: the new level, 4,25.
+- **Percentage points about an inflation rate** ("Tolvmånedersveksten steg 1,3
+  prosentpoeng", "en nedgang på 0,3 prosentpoeng") are `measure: change`,
+  `unit: percentage_points`. Copy the number without a sign; code reads the
+  direction from the words.
+- **Parts of KPI are out of scope:** food, electricity, rent, fuel, imported goods
+  and other sub-indices (`indicator: other`, `other_indicator` naming it). So are
+  other interest rates, such as mortgage or deposit rates.
+- **Skip** illustrative or made-up numbers ("anta", "oppdiktede tall", "i
+  eksemplet"), and the inflation target itself ("inflasjonsmålet på 2 prosent").
+
 ## Must
 - Report every claim about an economic figure, including ones you cannot classify.
 - Copy `source_text` and `stated_value` exactly.
@@ -36,7 +59,8 @@ reported as out of scope.
 
 ## Must not
 - Rewrite, round or correct a number.
-- Skip a claim with a number without reporting it.
+- Skip a claim with a number without reporting it. (The only exceptions are the
+  illustrative numbers and the inflation target named under Real-text rules.)
 - Guess a missing period. Leave it null; code infers it under rule D14.
 - Supply an official value, or say whether a claim is right.
 

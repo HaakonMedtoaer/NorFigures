@@ -37,7 +37,10 @@ def map_claim(raw: dict, series: dict[str, Series]) -> tuple[list[str], str | No
     # Which measure(s)? A measure phrase decides (D12). Without one, the nouns
     # "inflasjon"/"prisvekst"/"kjerneinflasjon"/"KPI-veksten" mean 12-month change; anything
     # else ("prisene steg", "KPI steg") could be either.
-    if h.measure:
+    if measure == "change":
+        # A change in the rate, in points (B27): the 12-month rate unless a phrase says monthly.
+        measures = [h.measure or "12_month_change"]
+    elif h.measure:
         measures = [h.measure]
     elif ind == "kpi_jae" or h.inflation_generic or h.kpi_growth_noun:
         measures = ["12_month_change"]
@@ -46,9 +49,14 @@ def map_claim(raw: dict, series: dict[str, Series]) -> tuple[list[str], str | No
 
     # Which index? Generic inflation words without "KPI" could mean headline or
     # core; headline is canonical (D4, ledger).
+    named = h.kpi_explicit or h.kpi_jae or h.inflation_generic or h.prices_generic
     if ind == "kpi_jae":
         indicators = ["kpi_jae"]
     elif h.inflation_generic and not h.kpi_explicit:
+        indicators = ["kpi", "kpi_jae"]
+    elif not named:
+        # The claim's own words name no index ("En oppgang på 0,6 prosentpoeng fra
+        # januar"): either could be meant, so both are checked (D4, B30).
         indicators = ["kpi", "kpi_jae"]
     else:
         indicators = ["kpi"]

@@ -68,6 +68,12 @@ should confirm or overturn them.
 | B23 | After mapping, the mapper's canonical series sets the claim's measure for KPI and KPI-JAE (D12); for a rate or exchange rate an empty measure becomes `level`. A changed measure is noted and labelled `measure_from_rules`. | First recorded run: Haiku gave core inflation as `level` and left "Prisene steg" without a measure. D12 is a code rule, so code applies it. |
 | B24 | SSB series read periods up to 2025-12 from the closed tables that hold the rates as published (03013 for KPI, 05327 for KPI-JAE), and later periods from 14706. Set per series in the ledger's `history`. | Found with real headlines from March 2025: KPI for February 2025 was published as 3.6 % but is 3.5 % in 14706 after the rebase; KPI-JAE 3.4 vs 3.5. Without this, correct headlines are flagged as wrong. Fits D6 ("latest published value"). |
 | B25 | Sub-indices (food, electricity, rent, fuel) are out of scope, unless the same claim names overall inflation ("prisveksten falt, trukket ned av strømprisene" is still KPI). | "Matvareprisene steg 8,6 prosent" would otherwise be compared with headline KPI and flagged as wrong. |
+| B26 | "fra februar 2024 til februar 2025", "høyere enn oktober for ett år siden", "sammenlignet med oktober i fjor" mean 12-month change (phrase tables). | Found in SSB release articles. |
+| B27 | A change in an inflation rate in percentage points ("Tolvmånedersveksten steg 1,3 prosentpoeng") is checked as this month's rate minus last month's. | SSB writes this in every release. Before, it was compared with the rate itself: a false alarm on correct text. |
+| B28 | General patterns for parts of KPI and for other rates: "prisene på X", "veksten for X", compounds like "sjokoladeprisene" or "KPImat", and compounds like "boliglånsrenten". "Prisene på X" marks a sub-index even when a general word is present. | With a careless extractor, four of nine claims in one SSB article were false alarms. |
+| B29 | A policy-rate decision ("settes ned", "holdes uendret") with no date is checked against the rate the day after publication. | Norges Bank's decisions take effect the next business day; "Styringsrenten settes ned til 4,25 prosent" was flagged on its own publication day. |
+| B30 | A KPI claim whose own words name no index is checked against both KPI and KPI-JAE (D4). | "En oppgang på 0,6 prosentpoeng fra januar" gets its subject from the previous sentence. |
+| B31 | The sign of a change comes from direction words ("nedgang", "falt", "høyere"); with no or mixed direction words, only the size is compared and the report says so. Change verbs need "med"/"by" directly before the amount. | "En nedgang på 0,3 prosentpoeng" is -0.3; "hevet mye for å få bukt med den høye prisveksten" is not a change of 0.25. |
 | B22 | Phrase-table rule for change verbs: the verb, then "med"/"by" later in the claim ("økte renten med 0,25"). KPI growth nouns ("KPI-veksten") mean 12-month change by default. | Real wording puts words between the verb and "med"; "KPI-veksten" is read like "inflasjonen". |
 
 ## Pending
@@ -83,6 +89,11 @@ All spec section 7 edge cases are decided (D4 to D16).
   cases on recorded Claude Haiku 5.5 output. Measured: about 4,400 input and
   230 output tokens per text; $0.011 for all 20 texts, about $0.0006 per check
   (Haiku 5.5 list prices, 2026-11-15). Haiku was enough; no Sonnet needed (D17).
+- 2026-11-19: four real long texts added (SSB articles for February 2025 and
+  October 2026; Norges Bank press releases for June 2025 and November 2026).
+  41 claims: 22 matched, 19 correctly not checkable, 0 false alarms, with both a
+  careful and a careless extractor. Haiku recordings for them, and a re-record of
+  everything after the phrase-table and contract changes, are pending.
 - 2026-11-18, after B24/B25: re-recorded 28 texts (20 cases + 8 real headlines
   from the February and March 2025 releases). All pass end to end, no false
   alarms on the headlines. 131,864 input and 6,062 output tokens, $0.0162 in

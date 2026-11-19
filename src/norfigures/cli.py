@@ -131,7 +131,8 @@ def cmd_record_agents(args) -> int:
     """Run the extractor live on every fixture text and save its output."""
     from .agents.extractor import extract
     cases = (sorted((REPO_ROOT / "tests" / "cases").glob("*.json"))
-             + sorted((REPO_ROOT / "tests" / "headlines").glob("*.json")))
+             + sorted((REPO_ROOT / "tests" / "headlines").glob("*.json"))
+             + sorted((REPO_ROOT / "tests" / "longtexts").glob("*.json")))
     total_in = total_out = 0
     cost = 0.0
     for p in cases:
@@ -185,7 +186,7 @@ def build_parser() -> argparse.ArgumentParser:
     pc.set_defaults(func=cmd_check)
 
     pr = sub.add_parser("record-agents",
-                        help="run the extractor live on tests/cases and tests/headlines and record its outputs")
+                        help="run the extractor live on tests/cases, tests/headlines and tests/longtexts")
     pr.set_defaults(func=cmd_record_agents)
     return p
 

@@ -19,7 +19,13 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
 | `hedges` | `hedged: true` (D10 tolerance, label `approximate`) |
 | `forecast_markers` | a `checkable` claim becomes `forecast` (D7) |
 | `measures.12_month_change` / `monthly_change` / `monthly_change_regex` | sets the measure (D12) |
-| `change_verbs` | followed later by "med" or "by" ("økte renten med 0,25"): for the policy rate or EUR/NOK, measure `change` (D11) |
+| `measures.12_month_change_regex` | "fra februar 2024 til februar 2025": the same month a year apart is a 12-month change (B26) |
+| `points_words` | "prosentpoeng", "prosentenheter": for KPI, a **change in the rate**, checked as this month's rate minus last month's (B27) |
+| `rate_decision_markers` | "settes ned", "holdes uendret": a rate decision, which takes effect the day after it is announced (B29) |
+| `out_of_scope_regex.sub_index` | "prisene på elektrisitet", "prisveksten for matvarer", "sjokoladeprisene": a sub-index, even when a general word is present (B28) |
+| `out_of_scope_regex.other_rate` | "boliglånsrenten", "innskuddsrenten": another interest rate, not the policy rate (B28) |
+| `direction_down` / `direction_up` | the sign of a change: "en nedgang på 0,3 prosentpoeng" is -0.3. Both or neither found: the size is compared and the report says the direction was not read (B31) |
+| `change_verbs` | followed later by "med" or "by" directly before the amount ("økte renten med 0,25"; not "hevet mye for å få bukt med den høye prisveksten"): for the policy rate or EUR/NOK, measure `change` (D11) |
 | `indicators.kpi_jae` | indicator `kpi_jae` |
 | `indicators.inflation_generic` | KPI vs KPI-JAE is ambiguous: both are checked, KPI first (D4); 12-month change unless a measure phrase says otherwise (D12) |
 | `indicators.kpi_growth_nouns` | headline KPI, 12-month change unless a measure phrase says otherwise (D12) |
@@ -51,11 +57,33 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
       "siste måned", "fra forrige måned", "fra måneden før", "månedsveksten", "månedsvekst",
       "month on month", "month-on-month", "from the previous month"
     ],
+    "12_month_change_regex": [
+      "fra (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember) (\\d{4}) til \\1 (\\d{4})",
+      "(sammenlignet med|enn i|enn) (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember)( \\d{4})? (i fjor|for ett år siden)",
+      "for ett år siden", "sammenlignet med samme måned i fjor"
+    ],
     "monthly_change_regex": [
       "fra (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember) til (januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember)",
       "from (january|february|march|april|may|june|july|august|september|october|november|december) to (january|february|march|april|may|june|july|august|september|october|november|december)"
     ]
   },
+  "points_words": [
+    "prosentpoeng", "prosentpoengs", "prosentenhet", "prosentenheter", "%-poeng",
+    "percentage point", "percentage points"
+  ],
+  "rate_decision_markers": [
+    "settes ned", "settes opp", "satt ned", "satt opp", "holdes uendret", "holdt uendret",
+    "sette styringsrenten ned", "sette styringsrenten opp", "heve styringsrenten",
+    "besluttet", "rentebeslutning", "rentemøtet", "is reduced", "is raised", "unchanged at"
+  ],
+  "direction_down": [
+    "nedgang", "nedgangen", "falt", "sank", "ned", "lavere", "reduksjon", "redusert", "kuttet",
+    "senket", "avtok", "svakere", "fell", "lower", "decrease", "decreased", "cut", "reduced"
+  ],
+  "direction_up": [
+    "oppgang", "oppgangen", "økning", "økningen", "økte", "steg", "opp", "høyere", "hevet",
+    "sterkere", "rose", "higher", "increase", "increased", "raised"
+  ],
   "change_verbs": [
     "økte", "økt", "steg", "sank", "falt", "kuttet", "kuttes", "satt opp", "satt ned",
     "hevet", "senket", "redusert", "raised", "cut", "increased", "lowered", "reduced"
@@ -91,6 +119,17 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
       "strømpris", "strømpriser", "strømprisene", "strømprisen", "husleie", "husleien", "husleiene",
       "drivstoffprisene", "bensinprisen", "dieselprisen", "energiprisene", "flyprisene",
       "food prices", "electricity prices", "rents", "fuel prices"
+    ]
+  },
+  "out_of_scope_regex": {
+    "sub_index": [
+      "\\bpris(ene|en|vekst|veksten|stigning|stigningen)? (på|for) (?!varer og tjenester|[-−]?\\d|januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember|året|fjoråret|perioden|samme)",
+      "\\b(?!konsum)\\w{3,}pris(ene|en|er)\\b",
+      "\\b\\w*veksten (på|for) (?!kpi|konsum|varer og tjenester|[-−]?\\d|januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember|året|fjoråret|perioden|samme)",
+      "\\bkpi[a-zæøå]{2,}\\b"
+    ],
+    "other_rate": [
+      "\\b(?!styrings|folio)\\w{3,}renten?\\b"
     ]
   },
   "record_words": [

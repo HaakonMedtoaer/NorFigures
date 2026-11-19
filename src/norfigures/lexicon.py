@@ -69,6 +69,10 @@ class Hints:
     inflation_generic: bool = False
     prices_generic: bool = False
     out_of_scope: str | None = None       # key, e.g. "unemployment"
+    out_of_scope_specific: bool = False   # found by a pattern like "prisene på X" (B28)
+    points: str | None = None             # "prosentpoeng" etc. (B27)
+    rate_decision: str | None = None      # "settes ned" etc. (B29)
+    direction: int = 0                    # -1 down, +1 up, 0 unknown or both (B31)
     record_word: str | None = None
 
 
@@ -83,6 +87,8 @@ def hints(text: str, data: dict | None = None) -> Hints:
     low = text.lower()
     mm += [m.group(0) for rx in data["measures"].get("monthly_change_regex", [])
            for m in [re.search(rx, low)] if m]
+    m12 += [m.group(0) for rx in data["measures"].get("12_month_change_regex", [])
+            for m in [re.search(rx, low)] if m]
     if m12 and not mm:
         h.measure, h.measure_phrase = "12_month_change", m12[0]
     elif mm and not m12:
@@ -90,7 +96,9 @@ def hints(text: str, data: dict | None = None) -> Hints:
 
     for verb in data["change_verbs"]:
         m = _pattern(verb).search(low)
-        if m and re.search(r"(?<![\w-])(med|by)(?![\w-])", low[m.end():]):
+        # "økte renten med 0,25" / "satt ned med et kvart": "med"/"by" right before the amount,
+        # not any later "med" ("hevet mye for å få bukt med den høye prisveksten").
+        if m and re.search(r"(?<![\w-])(med|by)\s+(?:[-−]?\d|en |et |ett |one |a )", low[m.end():]):
             h.change_verb = verb
             break
 
@@ -104,6 +112,20 @@ def hints(text: str, data: dict | None = None) -> Hints:
         if found(text, words):
             h.out_of_scope = key
             break
+    for key, patterns in ({} if h.out_of_scope else data.get("out_of_scope_regex", {})).items():
+        hits = [rx for rx in patterns if re.search(rx, low)]
+        if hits:
+            # Only "prisene på X" names its subject outright; a compound word may be a cause.
+            h.out_of_scope = key
+            h.out_of_scope_specific = any("(på|for)" in rx for rx in hits) or key != "sub_index"
+            break
+    pw = found(text, data.get("points_words", []))
+    h.points = pw[0] if pw else None
+    down = bool(found(text, data.get("direction_down", [])))
+    up = bool(found(text, data.get("direction_up", [])))
+    h.direction = -1 if down and not up else (1 if up and not down else 0)
+    rd = found(text, data.get("rate_decision_markers", []))
+    h.rate_decision = rd[0] if rd else None
     rw = found(text, data["record_words"])
     h.record_word = rw[0] if rw else None
     return h
@@ -125,8 +147,12 @@ def review(raw: dict, data: dict | None = None) -> dict:
                 labels.append("lexicon_override")
 
     general = h.kpi_explicit or h.kpi_jae or h.inflation_generic or h.prices_generic
-    if h.out_of_scope == "sub_index" and general:
+    policy_word = c.get("indicator") == "policy_rate" and bool(
+        found(c.get("source_text", ""), (data or load())["indicators"]["policy_rate"]))
+    if h.out_of_scope == "sub_index" and general and not h.out_of_scope_specific:
         pass  # a sub-index named as the cause of a KPI move; the claim is still KPI (B25)
+    elif h.out_of_scope == "other_rate" and policy_word:
+        pass  # "styringsrenten" named too; another rate is context, not the claim
     elif h.out_of_scope and c.get("status") in ("checkable", "ambiguous"):
         override("status", "out_of_scope", f"'{h.out_of_scope}' words")
         c["indicator"] = h.out_of_scope
@@ -142,8 +168,14 @@ def review(raw: dict, data: dict | None = None) -> dict:
             override("indicator", "kpi_jae", "a core-inflation phrase")
         if c.get("indicator") in ("policy_rate", "eurnok") and h.change_verb:
             override("measure", "change", f"change verb '{h.change_verb}'")
+        elif c.get("indicator") in ("kpi", "kpi_jae") and h.points:
+            # "Tolvmånedersveksten steg 1,3 prosentpoeng": a change in the rate (B27)
+            override("measure", "change", f"'{h.points}'")
+            override("unit", "percentage_points", f"'{h.points}'")
         elif c.get("indicator") in ("kpi", "kpi_jae") and h.measure:
             override("measure", h.measure, f"'{h.measure_phrase}'")
+        if c.get("indicator") == "policy_rate" and h.rate_decision and "rate_decision" not in labels:
+            labels.append("rate_decision")
 
     c["labels"] = labels
     if notes:
