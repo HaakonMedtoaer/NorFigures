@@ -84,9 +84,9 @@ All spec section 7 edge cases are decided (D4 to D16).
 
 ## Other open items
 
-- Source a link for the 2 % inflation target in the ledger.
-- Terms of use for both APIs (both appear open with no key; SSB rate limit
-  observed at 40 requests per minute).
+- Done 2026-11-19: the 2 % target is sourced to the regulation of 18 September
+  2026 (same wording as 2018 and 2019); terms of use and SSB's release timing
+  are confirmed and in the ledger.
 - Done 2026-11-18: weekend 3 "done when" met. The full loop passes all 20
   cases on recorded Claude Haiku 5.5 output. Measured: about 4,400 input and
   230 output tokens per text; $0.011 for all 20 texts, about $0.0006 per check

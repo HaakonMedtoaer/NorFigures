@@ -10,9 +10,10 @@ Code reads the `series` JSON block below. Edit it here and nowhere else.
 
 | Fact | Value | Source | Confirmed |
 |---|---|---|---|
-| Norges Bank's operational inflation target | 2 % annual CPI growth over time | Regulation on monetary policy (Forskrift om pengepolitikken), 2018 | 2026-11-14 (needs a source link before weekend 3) |
+| Norges Bank's operational inflation target | "en årsvekst i konsumprisene som over tid er nær 2 pst." (annual CPI growth close to 2 % over time) | Bestemmelse om pengepolitikken, adopted 18 September 2026; same wording as the 2018 and 2019 regulations it replaces. [Norges Bank press release](https://www.norges-bank.no/aktuelt/nyheter/Pressemeldinger/2026/2026-09-18-mandat/) | 2026-11-19 |
 | CPI reference year in SSB tables from 2026 | 2025 = 100 | SSB table 14706 notes | 2026-11-14 |
-| SSB release timing for KPI | KPI for month M is published around the 10th of month M+1 | Observed pattern; confirm against SSB's release calendar | 2026-11-15 (to verify) |
+| SSB release timing for KPI | KPI for month M is published on the 10th of month M+1, or the nearest working day (Fri 9 Oct 2026, Mon 11 May 2026); July is later (15 Jul 2026). Inference checks both possible months on days 1 to 15 (B11), which covers all of these. | [SSB article list](https://www.ssb.no/priser-og-prisindekser/konsumpriser/statistikk/konsumprisindeksen/artikler), 2025 and 2026 | 2026-11-19 |
+| Terms of use for the data | SSB: CC BY 4.0, including the API (credit SSB). Norges Bank: open API, no sign-in; site terms allow copying with Norges Bank named as source. No rate limit is published; SSB's API answers 40 requests a minute. | [SSB licence](https://www.ssb.no/diverse/lisens), [SSB API](https://www.ssb.no/api), [Norges Bank copyright](https://www.norges-bank.no/Opphavsrett/), [Norges Bank open data](https://www.norges-bank.no/tema/statistikk/apne-data/) | 2026-11-19 |
 
 ## Indicator definitions
 

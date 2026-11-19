@@ -176,7 +176,12 @@ python -m norfigures.mcp_server
 | Policy rate | Norges Bank | IR/B.KPRA.SD.R |
 | EUR/NOK | Norges Bank | EXR/B.EUR.NOK.SP |
 
-Both are open data with no API key. Full spec: [`docs/spec.md`](docs/spec.md).
+Both are open data with no API key. Statistics from SSB are used under
+[CC BY 4.0](https://www.ssb.no/diverse/lisens); data from Norges Bank is used
+with Norges Bank as source ([terms](https://www.norges-bank.no/Opphavsrett/)).
+Every report row names the source table or series it came from. The long test
+texts in `tests/longtexts/` are SSB articles (CC BY 4.0, excerpted) and Norges
+Bank press releases (unchanged). Full spec: [`docs/spec.md`](docs/spec.md).
 
 ## Licence
 
