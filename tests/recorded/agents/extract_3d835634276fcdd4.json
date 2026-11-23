@@ -1,0 +1,11 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt_sha": "82175382f0127edf",
+ "published": "2026-11-15",
+ "text": "Norges Bank økte renten med 0,25 prosent i september.",
+ "response_text": "{\"claims\":[{\"source_text\":\"Norges Bank økte renten med 0,25 prosent i september\",\"status\":\"checkable\",\"indicator\":\"policy_rate\",\"other_indicator\":null,\"measure\":\"change\",\"period\":\"2026-09\",\"unit\":\"percentage_points\",\"stated_value\":\"0,25\",\"hedged\":false}]}",
+ "stop_reason": "end_turn",
+ "input_tokens": 6774,
+ "output_tokens": 628,
+ "recorded_at": "2026-11-23T14:32:31+00:00"
+}

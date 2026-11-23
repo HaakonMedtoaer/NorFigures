@@ -1,0 +1,11 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt_sha": "82175382f0127edf",
+ "published": "2025-04-10",
+ "text": "Prisene opp 2,6 prosent i mars - Vi må være tålmodige",
+ "response_text": "{\"claims\":[{\"source_text\":\"Prisene opp 2,6 prosent i mars\",\"status\":\"checkable\",\"indicator\":\"kpi\",\"other_indicator\":null,\"measure\":null,\"period\":\"2025-03\",\"unit\":\"percent\",\"stated_value\":\"2,6\",\"hedged\":false}]}",
+ "stop_reason": "end_turn",
+ "input_tokens": 6780,
+ "output_tokens": 443,
+ "recorded_at": "2026-11-23T14:32:54+00:00"
+}
