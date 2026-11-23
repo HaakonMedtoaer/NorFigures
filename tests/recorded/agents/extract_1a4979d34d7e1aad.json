@@ -1,0 +1,11 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt_sha": "34aea2951106b058",
+ "published": "2026-11-15",
+ "text": "Prisene steg 0,3 prosent i oktober.",
+ "response_text": "{\"claims\":[{\"source_text\":\"Prisene steg 0,3 prosent i oktober\",\"status\":\"checkable\",\"indicator\":\"kpi\",\"other_indicator\":null,\"measure\":null,\"period\":\"2026-10\",\"unit\":\"percent\",\"stated_value\":\"0,3\",\"hedged\":false}]}",
+ "stop_reason": "end_turn",
+ "input_tokens": 8106,
+ "output_tokens": 785,
+ "recorded_at": "2026-11-23T18:38:27+00:00"
+}
