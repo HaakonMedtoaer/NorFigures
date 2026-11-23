@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "norfigures"
 version = "0.1.0"
-description = "Verify Norwegian economic figures against SSB and Norges Bank"
+description = "Verify Norwegian economic figures against SSB, Norges Bank and NAV"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
