@@ -276,8 +276,9 @@ def render_svg(tl: Timeline, title: str = "") -> str:
             ch = [(t, "visible" if w == word else "hidden") for t, w in states]
             css.append(f"@keyframes s{i}{word}{{{_hold_frames(ch, total, 'visibility')}}}"
                        f".s{i}{word}{{animation:s{i}{word} {anim}}}")
+            shown = "visible" if word == "waiting" else "hidden"
             body.append(f'<text x="{CAPTION_X - 14}" y="{y + 5}" text-anchor="end" '
-                        f'class="state s{i}{word}" visibility="{'visible' if word == 'waiting' else 'hidden'}">{word}</text>')
+                        f'class="state s{i}{word}" visibility="{shown}">{word}</text>')
 
         # Captions: each visible from its start until the next caption for this indicator.
         for j, s in enumerate(steps):
