@@ -17,6 +17,7 @@ import argparse
 import os
 import sys
 import time
+import traceback
 from datetime import date
 from pathlib import Path
 
@@ -243,7 +244,7 @@ def _parse_date(text: str) -> date:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="norfigures",
-                                description="Verify Norwegian economic figures against SSB and Norges Bank.")
+                                description="Verify Norwegian economic figures against SSB, Norges Bank and NAV.")
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -286,7 +287,11 @@ def main(argv: list[str] | None = None) -> int:
     except (ProvenanceError, AccountingError) as e:
         print(f"error: guardrail tripped: {e}", file=sys.stderr)
     except Exception as e:  # agent errors are imported lazily
-        if type(e).__name__ not in ("AgentError", "ExtractionError"):
-            raise
-        print(f"error: {e}", file=sys.stderr)
+        if type(e).__name__ in ("AgentError", "ExtractionError"):
+            print(f"error: {e}", file=sys.stderr)
+        else:
+            # A bug. Python would exit 1, which reads as "mismatch found"; never let
+            # a crash pass for a verdict.
+            traceback.print_exc()
+            print(f"error: internal error, not a verdict: {type(e).__name__}: {e}", file=sys.stderr)
     return EXIT_BAD_INPUT

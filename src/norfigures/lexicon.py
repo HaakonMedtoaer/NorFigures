@@ -235,7 +235,8 @@ def review(raw: dict, data: dict | None = None) -> dict:
         c["other_indicator"] = None
 
     if c.get("status") == "checkable":
-        if (h.unemployment or h.unemployment_nav) and not general                 and c.get("indicator") not in ("policy_rate", "eurnok"):
+        if (h.unemployment or h.unemployment_nav) and not general \
+                and c.get("indicator") not in ("policy_rate", "eurnok"):
             override("indicator", "unemployment", "an unemployment word")
         if h.kpi_jae and c.get("indicator") in ("kpi", "kpi_jae", None):
             override("indicator", "kpi_jae", "a core-inflation phrase")

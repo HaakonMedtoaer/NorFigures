@@ -100,6 +100,9 @@ class TableFileTest(unittest.TestCase):
             "a count, not a percent": (xlsx(rows=[("I alt", ["68932", "2.2", "2"])], fmt="#,##0"),
                                        "is not a percent"),
             "general number format": (xlsx(fmt="General"), "cannot read the decimals"),
+            # A percent cell stores 0.02 for 2 %; it must not pass as 0.02 % (audit 2026-11-23).
+            "percent number format": (xlsx(rows=[("I alt", ["0.02", "0.02", "0.02"])], fmt="0.00%"),
+                                      "cannot read the decimals"),
             "empty row": (xlsx(rows=[("I alt", [None, None, None])]), "has no values"),
             "not an xlsx": (b"<html>Not found</html>", "not a readable .xlsx"),
         }
@@ -115,6 +118,15 @@ def annual_xlsx(years=("2023", "2024", "2025"), values=("1.9", "2.1", "2.2")):
                 months=list(years), period_line=None, sheet_name="2. Fylke. Prosent av arbeidssty",
                 extra_sheets=("1. Fylke. Antall",))
     return data
+
+
+class NumberFormatTest(unittest.TestCase):
+    def test_percent_formats_are_never_read(self):
+        # Excel's built-in 9 and 10 are "0%" and "0.00%"; a custom one with % likewise.
+        self.assertEqual(nav._BUILTIN_DECIMALS.get(9, -1), -1)
+        self.assertEqual(nav._BUILTIN_DECIMALS.get(10, -1), -1)
+        self.assertEqual(nav._decimals("0.0%"), -1)
+        self.assertEqual(nav._decimals("#,##0.0"), 1)
 
 
 class AnnualTableTest(unittest.TestCase):

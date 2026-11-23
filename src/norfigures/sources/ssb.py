@@ -79,21 +79,32 @@ def fetch(client: Client, series_id: str, table: str, selection: dict[str, str],
     try:
         resp = client.get(f"{BASE}/tables/{table}/data", params)
     except FetchError as e:
-        if (start or end) and _not_published_yet(e, client, series_id, table, selection, start or end):
+        if not (start or end):
+            raise
+        lo, hi = start or end, end or start
+        newest = _newest_if_not_published(e, client, series_id, table, selection, hi)
+        if newest is None:
+            raise
+        if newest < lo:
             return []
-        raise
+        # Only the end of the range is not out yet ("from September to October" before
+        # October's release): return what is published, and the caller sees the gap.
+        return fetch(client, series_id, table, selection, start=lo, end=newest)
     return parse_jsonstat(resp.json(), series_id, resp.url, resp.retrieved_at)
 
 
-def _not_published_yet(err: FetchError, client: Client, series_id: str, table: str,
-                       selection: dict[str, str], start: str) -> bool:
+def _newest_if_not_published(err: FetchError, client: Client, series_id: str, table: str,
+                             selection: dict[str, str], end: str) -> str | None:
     """SSB answers 400 "Non-existent value" for a period the table does not hold yet,
     and also for a wrong selection code. Only the first is "no value yet": the same
-    selection must answer, with a newest period before the one asked for (D21)."""
+    selection must answer, with a newest period before the end of the range asked
+    for (D21, B48). Returns that newest period, or None if the error stands."""
     if err.status != 400 or "Non-existent value" not in err.body:
-        return False
+        return None
     latest = fetch(client, series_id, table, selection, last_n=1)  # raises if the selection is wrong
-    return bool(latest) and latest[-1].period < start
+    if latest and latest[-1].period < end:
+        return latest[-1].period
+    return None
 
 
 def _range(lo: str, hi: str) -> str:
@@ -122,6 +133,13 @@ def parse_jsonstat(d: dict, series_id: str, url: str, retrieved_at: str) -> list
         raise SourceError(f"unexpected json-stat2 shape from {url}: {e}") from e
     if [len(c) for c in cats] != sizes:
         raise SourceError(f"json-stat2 size mismatch from {url}")
+    total = 1
+    for n in sizes:
+        total *= n
+    if isinstance(values, list) and len(values) != total:
+        raise SourceError(f"json-stat2 from {url} has {len(values)} values for {total} cells")
+    if not isinstance(values, (list, dict)):
+        raise SourceError(f"json-stat2 from {url} has no value list")
     statuses = d.get("status") or {}
     time_dim = (d.get("role", {}).get("time") or ["Tid"])[0]
     metric_dim = (d.get("role", {}).get("metric") or ["ContentsCode"])[0]

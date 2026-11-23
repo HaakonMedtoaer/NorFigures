@@ -67,8 +67,44 @@ class ParserTest(unittest.TestCase):
     def test_malformed_payloads_raise_source_error(self):
         with self.assertRaises(SourceError):
             ssb.parse_jsonstat({"nope": 1}, "s", "u", "t")
+        short = jsonstat(["2026M01", "2026M02"])
+        short["value"] = [1.5]   # fewer values than cells: a SourceError, not an IndexError
+        with self.assertRaises(SourceError):
+            ssb.parse_jsonstat(short, "s", "u", "t")
+        sdmx = {"data": {"dataSets": [{"series": {"0": {"observations": {"5": ["4.0"]}}}}],
+                         "structure": {"dimensions": {"series": [{"id": "X", "values": [{"id": "a"}]}],
+                                                      "observation": [{"values": [{"id": "2026-11-01"}]}]}}}}
+        with self.assertRaises(SourceError):   # observation index past the time list
+            parse_sdmx(sdmx, "s", "u", "t")
         with self.assertRaises(SourceError):
             parse_sdmx({"nope": 1}, "s", "u", "t")
+
+
+def jsonstat(codes, start=3.0):
+    """A one-dimension json-stat2 answer, one value per time code."""
+    return {"id": ["Tid"], "size": [len(codes)], "value": [start + i / 10 for i in range(len(codes))],
+            "role": {"time": ["Tid"]},
+            "dimension": {"Tid": {"category": {"index": {c: i for i, c in enumerate(codes)}}}}}
+
+
+class SsbStub(Client):
+    """Answers like SSB: 400 "Non-existent value" if any period asked for is after `newest`."""
+
+    def __init__(self, newest, always_400=False):
+        super().__init__("replay")
+        self.newest, self.always_400 = newest, always_400
+
+    def get(self, base, params=None):
+        import json
+        from norfigures.net import FetchError, Response, build_url
+        url = build_url(base, params)
+        tid = (params or {}).get("valueCodes[Tid]", "")
+        if tid.startswith("top("):
+            return Response(url, 200, json.dumps(jsonstat([self.newest])), "t", False)
+        codes = tid.split(",")
+        if self.always_400 or any(c > self.newest for c in codes):
+            raise FetchError("HTTP 400", 400, '{"title":"Non-existent value","status":400}')
+        return Response(url, 200, json.dumps(jsonstat(codes)), "t", False)
 
 
 class NotPublishedYetTest(unittest.TestCase):
@@ -78,6 +114,23 @@ class NotPublishedYetTest(unittest.TestCase):
         from norfigures.sources import ssb
         sel = {"KPIavledetSerie": "KPI", "ContentsCode": "Aarsendring"}
         self.assertEqual(ssb.fetch(Client("replay"), "kpi_annual", "14707", sel, start="2026", end="2026"), [])
+
+    def test_a_range_whose_end_is_not_out_yet_returns_what_is_published(self):
+        # "Fra september til oktober" before October's release: SSB answers 400 for
+        # the whole range. September must come back, not a fetch error (audit 2026-11-23).
+        stub = SsbStub(newest="2026M09")
+        obs = ssb.fetch(stub, "kpi_12m", "03013", {"x": "y"}, start="2026-09", end="2026-10")
+        self.assertEqual([o.period for o in obs], ["2026-09"])
+        self.assertEqual(ssb.fetch(stub, "kpi_12m", "03013", {"x": "y"}, start="2026-10", end="2026-11"), [])
+        years = SsbStub(newest="2025")
+        self.assertEqual([o.period for o in ssb.fetch(years, "a", "14707", {}, start="2025", end="2026")],
+                         ["2025"])
+
+    def test_a_range_inside_the_published_data_still_fails_on_a_400(self):
+        from norfigures.net import FetchError
+        stub = SsbStub(newest="2026M10", always_400=True)
+        with self.assertRaises(FetchError):
+            ssb.fetch(stub, "kpi_12m", "03013", {"x": "y"}, start="2026-09", end="2026-10")
 
     def test_a_wrong_code_still_fails(self):
         from norfigures.net import FetchError

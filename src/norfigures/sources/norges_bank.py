@@ -61,11 +61,16 @@ def parse_sdmx(d: dict, series_id: str, url: str, retrieved_at: str) -> list[Obs
     if len(series) != 1:
         raise SourceError(f"expected one series from {url}, got {len(series)}")
     (series_key, body), = series.items()
-    dims = {dim["id"]: dim["values"][int(i)]["id"]
-            for dim, i in zip(series_dims, series_key.split(":"))}
+    try:
+        dims = {dim["id"]: dim["values"][int(i)]["id"]
+                for dim, i in zip(series_dims, series_key.split(":"))}
+        observations = sorted(body.get("observations", {}).items(), key=lambda kv: int(kv[0]))
+        periods = [times[int(idx)] for idx, _ in observations]
+    except (KeyError, TypeError, IndexError, ValueError, AttributeError) as e:
+        raise SourceError(f"unexpected SDMX-JSON shape from {url}: {e!r}") from e
 
     out = []
-    for idx, obs in sorted(body.get("observations", {}).items(), key=lambda kv: int(kv[0])):
+    for period, (_, obs) in zip(periods, observations):
         raw = obs[0] if obs else None
         if raw in (None, ""):
             continue
@@ -73,6 +78,6 @@ def parse_sdmx(d: dict, series_id: str, url: str, retrieved_at: str) -> list[Obs
             value = Decimal(str(raw))
         except InvalidOperation as e:
             raise SourceError(f"non-numeric value {raw!r} from {url}") from e
-        out.append(Observation(SOURCE, series_id, times[int(idx)], value, url,
+        out.append(Observation(SOURCE, series_id, period, value, url,
                                retrieved_at, dict(dims)))
     return out

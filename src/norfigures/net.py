@@ -117,6 +117,26 @@ def check_url(url: str) -> str:
     return host
 
 
+class _CheckedRedirects(urllib.request.HTTPRedirectHandler):
+    """Check every redirect target against the allowlist before it is requested.
+
+    urllib follows redirects on its own; checking only where a request ended up
+    would let it send a GET to another host first.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        check_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_OPENER = urllib.request.build_opener(_CheckedRedirects)
+
+
+def _open(req: urllib.request.Request, timeout: int):
+    """The one place a request leaves the process (tests replace this)."""
+    return _OPENER.open(req, timeout=timeout)
+
+
 def _is_text(content_type: str) -> bool:
     return content_type.startswith("text/") or content_type in (
         "application/json", "application/xml") or content_type.endswith("+json")
@@ -162,8 +182,9 @@ class Client:
             headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                # A redirect could leave the allowlist; check where we ended up.
+            with _open(req, self.timeout) as r:
+                # Redirects are checked before they are followed; check where we
+                # ended up as well, in case of anything the handler did not see.
                 check_url(r.geturl())
                 raw = r.read(MAX_BODY_BYTES + 1)
                 if len(raw) > MAX_BODY_BYTES:
@@ -180,7 +201,11 @@ class Client:
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             raise FetchError(f"could not reach {url}: {e}") from e
         if _is_text(ctype):
-            return Response(url, status, raw.decode("utf-8"), _now(), replayed=False)
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeDecodeError as e:
+                raise FetchError(f"response from {url} is not UTF-8 text ({e.reason})") from e
+            return Response(url, status, text, _now(), replayed=False)
         return Response(url, status, "", _now(), replayed=False, content=raw)
 
     def _save(self, resp: Response) -> None:

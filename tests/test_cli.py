@@ -15,6 +15,16 @@ class CliTest(unittest.TestCase):
             self.assertIn(sid, out.getvalue())
         self.assertIn("offline", out.getvalue())
 
+    def test_a_crash_exits_3_not_1(self):
+        # Exit 1 means "mismatch found"; an unexpected exception must never read as a verdict.
+        from unittest import mock
+        err = io.StringIO()
+        with mock.patch("norfigures.cli.latest", side_effect=IndexError("boom")), \
+                redirect_stdout(io.StringIO()), redirect_stderr(err):
+            code = main(["latest", "--offline"])
+        self.assertEqual(code, 3)
+        self.assertIn("internal error, not a verdict", err.getvalue())
+
     def test_unknown_command_exits_nonzero(self):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm:
             main(["frobnicate"])

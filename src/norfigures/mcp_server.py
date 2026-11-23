@@ -85,7 +85,7 @@ def build_server():
                          idempotent_hint=True, open_world_hint=True)
     server = MCPServer(
         name="norfigures",
-        instructions="Read-only access to official Norwegian figures from SSB and Norges Bank. "
+        instructions="Read-only access to official Norwegian figures from SSB, Norges Bank and NAV. "
                      "Values are returned as strings with the source's own precision.")
     server.tool(annotations=ro)(search_series)
     server.tool(annotations=ro)(describe_series)

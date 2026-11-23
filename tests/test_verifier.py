@@ -308,5 +308,44 @@ class AnnualTest(unittest.TestCase):
         self.assertIn("no_data", res.labels)
 
 
+class ChangeNotPublishedYetTest(unittest.TestCase):
+    """A change whose later period is not out yet is "cannot verify", never a fetch
+    error that stops the whole check (audit 2026-11-23)."""
+
+    def verify(self, newest, claim, published=None):
+        from tests.test_sources import SsbStub
+        series = load()
+        run = Run(SsbStub(newest), series)
+        (c,) = validate([claim], series)
+        return verify_claim(c, run, published, date(2026, 11, 23))
+
+    def claim(self, text, period, sid):
+        return {"id": "c1", "source_text": text, "status": "checkable", "indicator": "kpi",
+                "measure": "change", "period": period, "unit": "percentage_points",
+                "stated_value": "0.2", "mappings": [{"series_id": sid}]}
+
+    def test_month_not_out_yet(self):
+        res = self.verify("2026M10", self.claim("Inflasjonen steg 0,2 prosentpoeng i november",
+                                                "2026-11", "kpi_12m"))
+        self.assertEqual(res.verdict, CANNOT_VERIFY)
+        self.assertIn("no_data", res.labels)
+
+    def test_year_not_out_yet(self):
+        res = self.verify("2025", self.claim("Inflasjonen i 2026 var 0,2 prosentpoeng lavere enn i 2025",
+                                             "2026", "kpi_annual"))
+        self.assertEqual(res.verdict, CANNOT_VERIFY)
+        self.assertIn("no_data", res.labels)
+
+    def test_inferred_month_inside_the_release_window(self):
+        # Published 5 November: October or September could be meant; October is not out.
+        res = self.verify("2026M09", self.claim("Inflasjonen steg med 0,2 prosentpoeng", None, "kpi_12m"),
+                          published=date(2026, 11, 5))
+        self.assertEqual([r.period for r in res.readings], ["2026-10", "2026-09"])
+        self.assertFalse(res.readings[0].has_data)
+        self.assertTrue(res.readings[1].has_data)
+        self.assertEqual(res.verdict, CANNOT_VERIFY)
+        self.assertIn("incomplete_data", res.labels)
+
+
 if __name__ == "__main__":
     unittest.main()

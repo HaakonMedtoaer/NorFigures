@@ -2,6 +2,7 @@ import io
 import tempfile
 import unittest
 import urllib.error
+import urllib.request
 from pathlib import Path
 from unittest import mock
 
@@ -59,7 +60,7 @@ class AllowlistTest(unittest.TestCase):
     def test_disallowed_host_is_refused_before_any_io_in_every_mode(self):
         for mode in net.MODES:
             client = Client(mode, recordings_dir=Path(tempfile.mkdtemp()))
-            with mock.patch("urllib.request.urlopen") as urlopen, \
+            with mock.patch("norfigures.net._open") as urlopen, \
                     self.subTest(mode=mode), self.assertRaises(HostNotAllowed):
                 client.get("https://example.com/x")
             urlopen.assert_not_called()
@@ -72,7 +73,7 @@ class ReadOnlyTest(unittest.TestCase):
 
     def test_live_request_uses_get(self):
         client = Client("live")
-        with mock.patch("urllib.request.urlopen") as urlopen:
+        with mock.patch("norfigures.net._open") as urlopen:
             urlopen.side_effect = OSError("stop here")
             with self.assertRaises(net.FetchError):
                 client.get("https://data.ssb.no/x")
@@ -82,9 +83,34 @@ class ReadOnlyTest(unittest.TestCase):
         client = Client("live")
         fake = mock.MagicMock()
         fake.__enter__.return_value.geturl.return_value = "https://evil.example.com/x"
-        with mock.patch("urllib.request.urlopen", return_value=fake), \
+        with mock.patch("norfigures.net._open", return_value=fake), \
                 self.assertRaises(HostNotAllowed):
             client.get("https://data.ssb.no/x")
+
+    def test_redirect_target_is_checked_before_it_is_requested(self):
+        # urllib follows redirects itself; the handler must refuse before the next GET.
+        handler = net._CheckedRedirects()
+        req = urllib.request.Request("https://data.ssb.no/x", method="GET")
+        for target in ("https://evil.example.com/x", "http://data.ssb.no/x",
+                       "https://www.nav.no/minside"):
+            with self.subTest(target=target), self.assertRaises(HostNotAllowed):
+                handler.redirect_request(req, None, 302, "Found", {}, target)
+        ok = handler.redirect_request(req, None, 302, "Found", {}, "https://data.ssb.no/y")
+        self.assertEqual(ok.full_url, "https://data.ssb.no/y")
+
+    def test_the_opener_uses_the_checked_redirect_handler(self):
+        self.assertTrue(any(isinstance(h, net._CheckedRedirects) for h in net._OPENER.handlers))
+        self.assertFalse(any(type(h) is urllib.request.HTTPRedirectHandler for h in net._OPENER.handlers))
+
+    def test_a_text_body_that_is_not_utf8_is_a_fetch_error(self):
+        fake = mock.MagicMock()
+        r = fake.__enter__.return_value
+        r.geturl.return_value = "https://data.ssb.no/x"
+        r.read.return_value = b"\xff\xfe broken"
+        r.status = 200
+        r.headers.get_content_type.return_value = "application/json"
+        with mock.patch("norfigures.net._open", return_value=fake), self.assertRaises(net.FetchError):
+            Client("live").get("https://data.ssb.no/x")
 
     def test_no_other_module_imports_network_libraries(self):
         src = Path(net.__file__).parent
@@ -118,7 +144,7 @@ class BinaryBodyTest(unittest.TestCase):
             r.read.return_value = raw
             r.status = 200
             r.headers.get_content_type.return_value = ctype
-            with self.subTest(ctype=ctype), mock.patch("urllib.request.urlopen", return_value=fake):
+            with self.subTest(ctype=ctype), mock.patch("norfigures.net._open", return_value=fake):
                 got = Client("live").get("https://data.ssb.no/x")
                 self.assertEqual((got.body, got.content), (want_body, want_content))
 
@@ -127,7 +153,7 @@ class BinaryBodyTest(unittest.TestCase):
         r = fake.__enter__.return_value
         r.geturl.return_value = "https://data.ssb.no/x"
         r.read.return_value = b"x" * (net.MAX_BODY_BYTES + 1)
-        with mock.patch("urllib.request.urlopen", return_value=fake), self.assertRaises(net.FetchError):
+        with mock.patch("norfigures.net._open", return_value=fake), self.assertRaises(net.FetchError):
             Client("live").get("https://data.ssb.no/x")
 
 
@@ -137,7 +163,7 @@ class ErrorAnswerTest(unittest.TestCase):
         url = "https://data.ssb.no/api/x?y=1"
         err = urllib.error.HTTPError(url, 400, "Bad Request", {},
                                      io.BytesIO(b'{"title":"Non-existent value","status":400}'))
-        with mock.patch("urllib.request.urlopen", side_effect=err), self.assertRaises(net.FetchError) as live:
+        with mock.patch("norfigures.net._open", side_effect=err), self.assertRaises(net.FetchError) as live:
             Client("record", recordings_dir=tmp).get(url)
         self.assertEqual(live.exception.status, 400)
         with self.assertRaises(net.FetchError) as replay:
@@ -148,7 +174,7 @@ class ErrorAnswerTest(unittest.TestCase):
         tmp = Path(tempfile.mkdtemp())
         for code in (429, 503):
             err = urllib.error.HTTPError("https://data.ssb.no/x", code, "x", {}, io.BytesIO(b"busy"))
-            with self.subTest(code=code), mock.patch("urllib.request.urlopen", side_effect=err), \
+            with self.subTest(code=code), mock.patch("norfigures.net._open", side_effect=err), \
                     self.assertRaises(net.FetchError):
                 Client("record", recordings_dir=tmp).get("https://data.ssb.no/x")
         self.assertEqual(list(tmp.iterdir()), [])

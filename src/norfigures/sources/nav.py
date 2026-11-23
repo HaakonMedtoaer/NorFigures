@@ -43,7 +43,9 @@ MONTHS = ("januar", "februar", "mars", "april", "mai", "juni", "juli", "august",
 _NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
        "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships"}
 _REL = "{http://schemas.openxmlformats.org/package/2006/relationships}Relationship"
-_BUILTIN_DECIMALS = {0: None, 1: 0, 2: 2, 3: 0, 4: 2, 9: 0, 10: 2}
+# Excel's built-in number formats we can read. 9 and 10 ("0%", "0.00%") are left
+# out on purpose: a percent cell holds 0.021 for 2.1 %, which must never pass as 0.02.
+_BUILTIN_DECIMALS = {0: None, 1: 0, 2: 2, 3: 0, 4: 2}
 
 
 # --------------------------------------------------------------------------- page
@@ -72,9 +74,12 @@ def find_table_link(page: str, table: str, page_url: str) -> tuple[str, str]:
 # --------------------------------------------------------------------------- xlsx
 
 def _decimals(fmt: str) -> int | None:
+    """Decimals a custom number format shows; None for General, -1 if unreadable."""
     fmt = fmt.split(";")[0]
     if fmt.lower() == "general":
         return None
+    if "%" in fmt:
+        return -1   # a percent format scales the stored value by 100; refuse it
     m = re.search(r"\.([0#]+)", fmt)
     return len(m.group(1)) if m else 0
 
@@ -121,12 +126,23 @@ class _Workbook:
     def rows(self, sheet: str) -> list[dict[str, tuple[str, int | None]]]:
         """Rows as {column letter: (text, decimals of the number format)}; empty cells left out."""
         out = []
-        for row in self._xml(self.sheets[sheet]).iterfind("m:sheetData/m:row", _NS):
+        try:
+            root = self._xml(self.sheets[sheet])
+        except (KeyError, ET.ParseError) as e:
+            raise SourceError(f"{self.where}: sheet {sheet!r} cannot be read: {e!r}") from e
+        for row in root.iterfind("m:sheetData/m:row", _NS):
             cells = {}
             for c in row.findall("m:c", _NS):
                 v = c.find("m:v", _NS)
                 if v is not None and v.text is not None:
-                    text = self.strings[int(v.text)] if c.get("t") == "s" else v.text
+                    if c.get("t") == "s":
+                        try:
+                            text = self.strings[int(v.text)]
+                        except (ValueError, IndexError):
+                            raise SourceError(f"{self.where}: cell {c.get('r')} points to a "
+                                              f"shared string that does not exist") from None
+                    else:
+                        text = v.text
                 else:
                     inline = c.find("m:is", _NS)
                     if inline is None:
@@ -134,8 +150,11 @@ class _Workbook:
                     text = "".join(t.text or "" for t in inline.iter(f"{{{_NS['m']}}}t"))
                 style = int(c.get("s", "0"))
                 dec = self.formats[style] if style < len(self.formats) else -1
-                col = re.match(r"[A-Z]+", c.get("r", "")).group(0)
-                cells[col] = (text.strip(), dec)
+                ref = re.match(r"[A-Z]+", c.get("r", ""))
+                if ref is None:
+                    raise SourceError(f"{self.where}: a cell in sheet {sheet!r} has no "
+                                      "column reference")
+                cells[ref.group(0)] = (text.strip(), dec)
             if cells:
                 out.append(cells)
         return out
@@ -213,7 +232,7 @@ def _value(cell: tuple, what: str, where: str) -> Decimal:
         raise SourceError(f"{where}: {what} value {text!r} is not a number") from None
     if dec is None or dec < 0:
         raise SourceError(f"{where}: {what} cell has a number format we cannot "
-                          "read the decimals from")
+                          "read the decimals from (General, a percent format, or unknown)")
     shown = value.quantize(Decimal(1).scaleb(-dec))
     if shown != value:
         raise SourceError(f"{where}: {what} value {text} has more decimals than "
