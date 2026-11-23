@@ -128,33 +128,54 @@ def _agent_mode(offline: bool) -> str:
 
 
 def cmd_record_agents(args) -> int:
-    """Run the extractor live on every fixture text and save its output."""
-    from .agents.extractor import extract
-    cases = (sorted((REPO_ROOT / "tests" / "cases").glob("*.json"))
+    """Run the extractor live on every test text and save its output.
+
+    Keeps going when one text fails, prunes recordings made with an older prompt,
+    and exits 3 if any text could not be recorded. --missing skips texts that
+    already have a recording for the current prompt.
+    """
+    from .agents.extractor import RECORDINGS_DIR, extract, recording_path
+    from .agents.llm import AgentError
+    files = (sorted((REPO_ROOT / "tests" / "cases").glob("*.json"))
              + sorted((REPO_ROOT / "tests" / "headlines").glob("*.json"))
              + sorted((REPO_ROOT / "tests" / "longtexts").glob("*.json")))
-    total_in = total_out = 0
-    cost = 0.0
-    for p in cases:
+    texts = []
+    for p in files:
         case = parse_json(p.read_text(encoding="utf-8"))
-        ex = extract(case["text"], case.get("published"), mode="record")
+        texts.append((p, case["text"], case.get("published")))
+
+    total_in = total_out = done = 0
+    cost, failed, model = 0.0, [], "-"
+    for p, text, published in texts:
+        label = f"{p.parent.name}/{p.stem}"
+        if args.missing and recording_path(text.strip(), published).exists():
+            print(f"{label}: already recorded")
+            continue
+        try:
+            ex = extract(text, published, mode="record")
+        except Exception as e:  # AgentError, ExtractionError: report and go on
+            failed.append(label)
+            print(f"{label}: FAILED: {e}")
+            continue
+        done += 1
+        model = ex.model
         total_in += ex.input_tokens
         total_out += ex.output_tokens
         cost += ex.cost_usd
-        print(f"{p.stem}: {len(ex.claims)} claims, {ex.input_tokens} in / {ex.output_tokens} out")
+        print(f"{label}: {len(ex.claims)} claims, {ex.input_tokens} in / {ex.output_tokens} out")
+
     # Recordings for an older prompt or phrase table can never be replayed again.
-    from .agents.extractor import RECORDINGS_DIR, recording_path
-    keep = {recording_path(parse_json(p.read_text(encoding="utf-8"))["text"].strip(),
-                           parse_json(p.read_text(encoding="utf-8")).get("published")).name
-            for p in cases}
+    keep = {recording_path(text.strip(), published).name for _, text, published in texts}
     stale = [f for f in RECORDINGS_DIR.glob("extract_*.json") if f.name not in keep]
     for f in stale:
         f.unlink()
     if stale:
         print(f"Removed {len(stale)} stale recordings from an older prompt.")
-    print(f"\nRecorded {len(cases)} texts with {ex.model if cases else '-'}: "
-          f"{total_in} input and {total_out} output tokens, about ${cost:.4f} in total, "
-          f"${cost / max(len(cases), 1):.5f} per text.")
+    print(f"\nRecorded {done} texts with {model}: {total_in} input and {total_out} output "
+          f"tokens, about ${cost:.4f} in total, ${cost / max(done, 1):.5f} per text.")
+    if failed:
+        print(f"{len(failed)} failed: {', '.join(failed)}", file=sys.stderr)
+        return EXIT_BAD_INPUT
     return EXIT_OK
 
 
@@ -187,6 +208,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     pr = sub.add_parser("record-agents",
                         help="run the extractor live on tests/cases, tests/headlines and tests/longtexts")
+    pr.add_argument("--missing", action="store_true",
+                    help="only record texts with no recording for the current prompt")
     pr.set_defaults(func=cmd_record_agents)
     return p
 

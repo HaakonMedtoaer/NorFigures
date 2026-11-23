@@ -23,6 +23,8 @@ MATCHED, MISMATCHED, CANNOT_VERIFY = "matched", "mismatched", "cannot_verify"
 
 # How far back to look for the last business-day observation on or before a date.
 DAILY_LOOKBACK_DAYS = 14
+# How far after a rate decision's date to look for the rate in force (B35).
+DECISION_WINDOW_DAYS = 7
 
 
 class ProvenanceError(Exception):
@@ -200,11 +202,6 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
         if candidates is None:
             if s.frequency == "M":
                 plist = periods.infer_monthly(published)
-            elif s.id == "policy_rate" and "rate_decision" in claim.labels:
-                # A decision announced today takes effect tomorrow (B29).
-                plist = [(published + timedelta(days=1)).isoformat()]
-                res.notes.append("Rate decision: checked against the rate in force the day after "
-                                 f"publication ({plist[0]}).")
             else:
                 plist = [published.isoformat()]
         else:
@@ -291,6 +288,24 @@ def _read(claim: Claim, s: Series, period: str, run: Run) -> Reading:
             r.note = f"{before[-1].period}: {before[-1].value} -> {upto[-1].period}: {upto[-1].value}"
         else:
             r.note = f"not enough observations around {period}"
+        return r
+
+    if k == "day" and s.id == "policy_rate" and "rate_decision" in claim.labels:
+        # A decision is announced the day after the meeting and takes effect the next
+        # business day. Check the rate once it is in force: the rate a week after the
+        # given date (meetings are about six weeks apart) (B29, revised in B35).
+        d = periods.parse_day(period)
+        until = d + timedelta(days=DECISION_WINDOW_DAYS)
+        obs = run.fetch(s, (d - timedelta(days=DAILY_LOOKBACK_DAYS)).isoformat(), until.isoformat(), claim.id)
+        r = Reading(s.id, period, "point")
+        later = [o for o in obs if o.period > period]
+        if later:
+            r.observations = [later[-1]]
+            r.official_value = later[-1].value
+            r.note = (f"Rate decision: checked against the rate in force after it took effect, "
+                      f"{later[-1].period}.")
+        else:
+            r.note = f"Rate decision on {period} is not yet in force in Norges Bank's data."
         return r
 
     if k == "day":

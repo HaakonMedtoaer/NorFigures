@@ -11,7 +11,9 @@ from dataclasses import dataclass
 
 MODEL = "claude-haiku-5-5"
 EFFORT = "medium"
-MAX_TOKENS = 8000
+# Output budget, thinking included. A 20-claim SSB article ran past 8,000; the call
+# streams so a large budget cannot hit the SDK's request timeout (B34).
+MAX_TOKENS = 32000
 
 # Anthropic list prices for Claude Haiku 5.5 (prompts up to 100K tokens), USD
 # per million tokens, as of 2026-11-15. Used only to report cost per run.
@@ -50,14 +52,15 @@ def complete_json(system: str, user: str, schema: dict, model: str = MODEL) -> L
 
     try:
         client = anthropic.Anthropic(base_url=BASE_URL)
-        resp = client.messages.create(
+        with client.messages.stream(
             model=model,
             max_tokens=MAX_TOKENS,
             system=system,
             messages=[{"role": "user", "content": user}],
             output_config={"effort": EFFORT,
                            "format": {"type": "json_schema", "schema": schema}},
-        )
+        ) as stream:
+            resp = stream.get_final_message()
     except TypeError as e:
         # The SDK raises TypeError before any request when it finds no credentials.
         if "authentication" not in str(e).lower():

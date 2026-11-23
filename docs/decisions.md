@@ -76,6 +76,8 @@ should confirm or overturn them.
 | B31 | The sign of a change comes from direction words ("nedgang", "falt", "høyere"); with no or mixed direction words, only the size is compared and the report says so. Change verbs need "med"/"by" directly before the amount. | "En nedgang på 0,3 prosentpoeng" is -0.3; "hevet mye for å få bukt med den høye prisveksten" is not a change of 0.25. |
 | B32 | When one span holds several figures, each claim gets the measure phrase from its own clause (split at ", ", " og ", " men ", " mens "), else the nearest; "prosentpoeng" makes a change only directly after the claim's number. | SSB: "KPI steg 0,6 prosent fra desember 2025 til januar 2026 og var i januar 3,6 prosent høyere enn for ett år siden" is a monthly and a 12-month figure in one sentence. |
 | B33 | A change between two months takes both months from the table that holds the later month. | SSB said KPI-JAE rose 0.2 points from December 2025 to January 2026: 3.2 to 3.4 in table 14706. The December rate as published (05327) is 3.1, which would give 0.3. |
+| B34 | The extractor streams its answer with a 32,000-token budget (thinking included). `record-agents` keeps going when a text fails, still prunes stale recordings, and `--missing` records only texts without a current recording. | The first local run stopped at 8,000 tokens on a 20-claim SSB article, and the crash left 28 stale recordings behind. |
+| B35 | Revises B29: a policy-rate decision is checked against the rate in force once it has taken effect, up to 7 days after the given date (publication date if none). If the data shows no day after the decision yet, it is "not yet in force", not a mismatch. | Haiku gave "Styringsrenten settes ned til 4,25 prosent" the meeting date (18 June 2025) as its period; the cut took effect on 20 June. B29's day-after rule only covered a missing period. |
 | B22 | Phrase-table rule for change verbs: the verb, then "med"/"by" later in the claim ("økte renten med 0,25"). KPI growth nouns ("KPI-veksten") mean 12-month change by default. | Real wording puts words between the verb and "med"; "KPI-veksten" is read like "inflasjonen". |
 
 ## Pending
@@ -91,6 +93,11 @@ All spec section 7 edge cases are decided (D4 to D16).
   cases on recorded Claude Haiku 5.5 output. Measured: about 4,400 input and
   230 output tokens per text; $0.011 for all 20 texts, about $0.0006 per check
   (Haiku 5.5 list prices, 2026-11-15). Haiku was enough; no Sonnet needed (D17).
+- 2026-11-23: first Haiku run with the real-text contract (local, Windows).
+  All 20 cases and 8 headlines pass the full loop. 3 of 5 long texts recorded
+  before the run hit the token limit (B34). On those three, after B35: 0 false
+  alarms; on SSB February 2025 Haiku found 19 claims to the hand extraction's
+  11 (10 matched, 9 correctly out of scope).
 - 2026-11-19: a fifth long text, SSB's January 2026 article (first month on
   the new table, 20 claims), led to B32 and B33. Five texts, 61 claims: 35
   matched, 26 correctly not checkable, 0 false alarms, careful and careless.
