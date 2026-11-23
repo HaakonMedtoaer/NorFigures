@@ -26,6 +26,11 @@ class FlowServer:
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self):  # noqa: N802 (stdlib name)
+                # A web page cannot reach this server through another name pointed at
+                # 127.0.0.1 (DNS rebinding): only the exact address we serve is answered.
+                if self.headers.get("Host") != f"{HOST}:{outer.port}":
+                    self.send_error(403)
+                    return
                 path = self.path.split("?", 1)[0]
                 if path in ("/", "/flowmap.html"):
                     body, ctype = outer.page.read_bytes(), "text/html; charset=utf-8"

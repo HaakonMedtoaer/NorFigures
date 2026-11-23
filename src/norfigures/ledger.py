@@ -101,7 +101,11 @@ def load(path: Path | None = None) -> dict[str, Series]:
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as e:
-        raise LedgerError(f"cannot read ledger {path}: {e}") from e
+        hint = ""
+        if not path.exists() and path == LEDGER_PATH:
+            hint = (" NorFigures reads facts/, agents/ and tests/recorded/ from its source "
+                    "tree: clone the repository and install it with `pip install -e .`.")
+        raise LedgerError(f"cannot read ledger {path}: {e}.{hint}") from e
     blocks = _BLOCK.findall(text)
     if len(blocks) != 1:
         raise LedgerError(f"ledger must contain exactly one ```json series block, found {len(blocks)}")

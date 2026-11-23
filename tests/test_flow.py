@@ -90,6 +90,15 @@ class FlowServerTest(unittest.TestCase):
             cm.exception.close()
             self.assertEqual(cm.exception.code, 404)
 
+    def test_another_host_name_is_refused(self):
+        # DNS rebinding: a page on evil.example resolving to 127.0.0.1 sends its own Host.
+        for host in ("evil.example:%d" % self.server.port, "localhost:%d" % self.server.port, "127.0.0.1"):
+            req = urllib.request.Request(self.base + "/run.jsonl", headers={"Host": host})
+            with self.subTest(host=host), self.assertRaises(urllib.error.HTTPError) as cm:
+                urllib.request.urlopen(req, timeout=5)
+            cm.exception.close()
+            self.assertEqual(cm.exception.code, 403)
+
     def test_get_only(self):
         req = urllib.request.Request(self.base + "/run.jsonl", data=b"x", method="POST")
         with self.assertRaises(urllib.error.HTTPError) as cm:

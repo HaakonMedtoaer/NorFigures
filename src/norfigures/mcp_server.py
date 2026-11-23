@@ -8,6 +8,7 @@ allowlist and GET-only rule apply. No tool writes anything.
 
 from __future__ import annotations
 
+import re
 
 from .fetch import fetch_series
 from .ledger import load
@@ -15,6 +16,11 @@ from .net import Client
 from .sources import norges_bank, ssb
 
 SOURCES = ("ssb", "norges_bank", "nav")
+
+# Identifiers a client passes go into URL paths; only plain IDs are accepted.
+SSB_TABLE_RE = re.compile(r"[0-9]{5}")
+NB_FLOW_RE = re.compile(r"[A-Z][A-Z0-9_]{0,19}")
+NB_KEY_RE = re.compile(r"[A-Za-z0-9_+]+(?:\.[A-Za-z0-9_+]*)*")
 
 
 def _client() -> Client:
@@ -42,7 +48,10 @@ def describe_series(source: str, series_id: str) -> dict:
     if s is not None and s.source != source:
         raise ValueError(f"{series_id} belongs to {s.source}, not {source}")
     if source == "ssb":
-        info = ssb.describe_table(_client(), s.table if s else series_id)
+        table = s.table if s else series_id
+        if not SSB_TABLE_RE.fullmatch(table):
+            raise ValueError("SSB series must be a ledger ID or a five-digit table number (e.g. 03013)")
+        info = ssb.describe_table(_client(), table)
         info["dimensions"] = {k: {"label": v["label"], "codes": dict(list(v["codes"].items())[:50]),
                                   "count": len(v["codes"])} for k, v in info["dimensions"].items()}
     elif source == "nav":
@@ -54,8 +63,8 @@ def describe_series(source: str, series_id: str) -> dict:
     else:
         if s is None:
             flow, _, key = series_id.partition("/")
-            if not key:
-                raise ValueError("Norges Bank series must be a ledger ID or FLOW/KEY")
+            if not (NB_FLOW_RE.fullmatch(flow) and NB_KEY_RE.fullmatch(key)):
+                raise ValueError("Norges Bank series must be a ledger ID or FLOW/KEY (e.g. EXR/B.EUR.NOK.SP)")
         else:
             flow, key = s.flow, s.key
         info = norges_bank.describe_series(_client(), flow, key)

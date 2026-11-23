@@ -6,6 +6,7 @@ No API key. Rate limit observed 2026-11-14: 40 requests per 60 s
 
 from __future__ import annotations
 
+import json
 import re
 from decimal import Decimal, InvalidOperation
 from itertools import product
@@ -90,7 +91,12 @@ def fetch(client: Client, series_id: str, table: str, selection: dict[str, str],
         # Only the end of the range is not out yet ("from September to October" before
         # October's release): return what is published, and the caller sees the gap.
         return fetch(client, series_id, table, selection, start=lo, end=newest)
-    return parse_jsonstat(resp.json(), series_id, resp.url, resp.retrieved_at)
+    try:
+        # Numbers straight from the source's text into Decimal, never through float.
+        data = json.loads(resp.body, parse_float=Decimal)
+    except json.JSONDecodeError as e:
+        raise SourceError(f"answer from {resp.url} is not JSON: {e}") from e
+    return parse_jsonstat(data, series_id, resp.url, resp.retrieved_at)
 
 
 def _newest_if_not_published(err: FetchError, client: Client, series_id: str, table: str,
@@ -160,7 +166,13 @@ def parse_jsonstat(d: dict, series_id: str, url: str, retrieved_at: str) -> list
         # published precision, which the rounding rule depends on.
         decimals = units.get(dims.get(metric_dim), {}).get("decimals")
         if decimals is not None:
-            value = value.quantize(Decimal(1).scaleb(-int(decimals)))
+            shown = value.quantize(Decimal(1).scaleb(-int(decimals)))
+            if shown != value:
+                # As for NAV: never round a source's figure ourselves; the rounding
+                # rule (D8) needs the precision the source published.
+                raise SourceError(f"value {raw} from {url} has more decimals than the "
+                                  f"{decimals} SSB declares; refusing to round it")
+            value = shown
         if str(flat) in statuses:
             dims["_status"] = statuses[str(flat)]
         period = from_ssb_period(dims.pop(time_dim))

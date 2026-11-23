@@ -67,6 +67,14 @@ class ParserTest(unittest.TestCase):
     def test_malformed_payloads_raise_source_error(self):
         with self.assertRaises(SourceError):
             ssb.parse_jsonstat({"nope": 1}, "s", "u", "t")
+        more = {"id": ["ContentsCode", "Tid"], "size": [1, 1], "value": [Decimal("3.65")],
+                "role": {"time": ["Tid"], "metric": ["ContentsCode"]},
+                "dimension": {"ContentsCode": {"category": {"index": {"X": 0},
+                                                            "unit": {"X": {"decimals": 1}}}},
+                              "Tid": {"category": {"index": {"2026M01": 0}}}}}
+        with self.assertRaises(SourceError) as cm:   # never rounded by us (D8 needs SSB's own figure)
+            ssb.parse_jsonstat(more, "s", "u", "t")
+        self.assertIn("refusing to round", str(cm.exception))
         short = jsonstat(["2026M01", "2026M02"])
         short["value"] = [1.5]   # fewer values than cells: a SourceError, not an IndexError
         with self.assertRaises(SourceError):
@@ -125,6 +133,17 @@ class NotPublishedYetTest(unittest.TestCase):
         years = SsbStub(newest="2025")
         self.assertEqual([o.period for o in ssb.fetch(years, "a", "14707", {}, start="2025", end="2026")],
                          ["2025"])
+
+    def test_values_are_read_as_decimal_text_not_float(self):
+        import json
+        from norfigures.net import Response
+
+        class One(Client):
+            def get(self, base, params=None):
+                body = json.dumps(jsonstat(["2026M01"])).replace("3.0", "3.00000000000000000001")
+                return Response(base, 200, body, "t", False)
+        (o,) = ssb.fetch(One("replay"), "s", "1", {}, start="2026-01", end="2026-01")
+        self.assertEqual(o.value, Decimal("3.00000000000000000001"))   # a float would give 3.0
 
     def test_a_range_inside_the_published_data_still_fails_on_a_400(self):
         from norfigures.net import FetchError

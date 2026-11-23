@@ -22,6 +22,14 @@ class McpToolsTest(unittest.TestCase):
         ids = [r["series_id"] for r in mcp_server.search_series("norges_bank", "exchange")]
         self.assertEqual(ids, ["eurnok"])
 
+    def test_identifiers_that_go_into_url_paths_are_checked(self):
+        # Refused before any request: no recording exists for these, so a fetch would fail differently.
+        for source, sid in [("ssb", "../tables"), ("ssb", "03013?x=1"), ("ssb", "1234"),
+                            ("norges_bank", "EXR/../x"), ("norges_bank", "EXR/B.EUR?x=1"),
+                            ("norges_bank", "EXR")]:
+            with self.subTest(sid=sid), self.assertRaises(ValueError):
+                mcp_server.describe_series(source, sid)
+
     def test_bad_source_refused(self):
         with self.assertRaises(ValueError):
             mcp_server.search_series("wikipedia", "kpi")
