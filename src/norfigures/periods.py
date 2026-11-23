@@ -34,6 +34,17 @@ def month_bounds(month: str) -> tuple[date, date]:
     return first, nxt - timedelta(days=1)
 
 
+def bounds(period: str) -> tuple[date, date]:
+    """First and last day of a day, month or year period."""
+    k = kind(period)
+    if k == "day":
+        d = parse_day(period)
+        return d, d
+    if k == "month":
+        return month_bounds(period)
+    return date(int(period), 1, 1), date(int(period), 12, 31)
+
+
 def period_start(period: str) -> date:
     k = kind(period)
     if k == "day":

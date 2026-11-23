@@ -32,7 +32,10 @@ from decimal import Decimal, InvalidOperation
 
 STATUSES = ("checkable", "forecast", "no_figure", "ambiguous", "out_of_scope")
 INDICATORS = ("kpi", "kpi_jae", "policy_rate", "eurnok", "unemployment")
-MEASURES = ("12_month_change", "monthly_change", "level", "change")
+# What the extractor may say. `annual_change` is set only by the mapping rules
+# for a year (D21), so the model's schema, and its recordings, do not change.
+EXTRACTED_MEASURES = ("12_month_change", "monthly_change", "level", "change")
+MEASURES = EXTRACTED_MEASURES[:2] + ("annual_change",) + EXTRACTED_MEASURES[2:]
 UNITS = ("percent", "percentage_points", "nok_per_eur")
 
 PERIOD_RE = re.compile(r"^\d{4}(-\d{2}(-\d{2})?)?$")

@@ -109,6 +109,42 @@ class TableFileTest(unittest.TestCase):
             self.assertIn(message, str(cm.exception))
 
 
+def annual_xlsx(years=("2023", "2024", "2025"), values=("1.9", "2.1", "2.2")):
+    """NAV's annual layout (HL090): a header row of years, one row per area."""
+    data = xlsx(rows=[("I alt", list(values)), ("Oslo", ["2.5", "2.6", "2.7"])],
+                months=list(years), period_line=None, sheet_name="2. Fylke. Prosent av arbeidssty",
+                extra_sheets=("1. Fylke. Antall",))
+    return data
+
+
+class AnnualTableTest(unittest.TestCase):
+    def parse(self, data):
+        return nav.parse_table(data, ("Prosent",), "I alt", "test file", annual=True)
+
+    def test_reads_the_national_row_by_year(self):
+        self.assertEqual({k: str(v) for k, v in self.parse(annual_xlsx()).items()},
+                         {"2023": "1.9", "2024": "2.1", "2025": "2.2"})
+
+    def test_suppressed_cells_are_left_out(self):
+        self.assertEqual(sorted(self.parse(annual_xlsx(values=("*", "2.1", "2.2")))), ["2024", "2025"])
+
+    def test_annual_layout_changes_fail_loudly(self):
+        cases = {
+            "years not consecutive": (annual_xlsx(years=("2023", "2025", "2026")), "not consecutive"),
+            "no year header": (annual_xlsx(years=("A", "B", "C")), "no header row with years"),
+            "text in a value cell": (annual_xlsx(values=("1,9", "2.1", "2.2")), "is not a number"),
+        }
+        for name, (data, message) in cases.items():
+            with self.subTest(name=name), self.assertRaises(SourceError) as cm:
+                self.parse(data)
+            self.assertIn(message, str(cm.exception))
+
+    def test_finds_the_annual_file_by_year(self):
+        link = LINK.format(m="2025").replace("HL050", "HL090")
+        url, period = nav.find_table_link(link, "HL090", "page")
+        self.assertEqual(period, "2025")
+
+
 class PageTest(unittest.TestCase):
     def test_finds_the_table_link_and_its_month(self):
         url, month = nav.find_table_link(LINK.format(m="202610"), "HL050", "page")
@@ -167,6 +203,13 @@ class RecordedNavTest(unittest.TestCase):
 
     def test_a_month_after_the_file_has_no_value(self):
         self.assertEqual(fetch_series(self.client, self.series, start="2026-11", end="2026-11"), [])
+
+    def test_annual_series_from_the_recorded_file(self):
+        s = load()["nav_registered_annual"]
+        obs = fetch_series(self.client, s, start="2024", end="2025")
+        self.assertEqual([(o.period, str(o.value)) for o in obs], [("2024", "2.1"), ("2025", "2.2")])
+        # The file's early years are incomplete; the ledger reads from 2009 only.
+        self.assertEqual(fetch_series(self.client, s, start="2001", end="2001"), [])
 
     def test_before_the_archive_is_refused(self):
         with self.assertRaises(SourceError):

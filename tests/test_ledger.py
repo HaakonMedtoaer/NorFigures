@@ -5,7 +5,8 @@ from pathlib import Path
 from norfigures import net
 from norfigures.ledger import LedgerError, load
 
-SERIES = {"kpi_12m", "kpi_monthly", "kpi_jae_12m", "aku_trend", "aku_3mma", "nav_registered",
+SERIES = {"kpi_12m", "kpi_monthly", "kpi_jae_12m", "kpi_annual", "kpi_jae_annual", "aku_trend", "aku_3mma", "aku_annual",
+          "aku_annual_break_adjusted", "nav_registered", "nav_registered_annual",
           "policy_rate", "eurnok"}
 
 

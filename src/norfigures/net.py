@@ -55,7 +55,17 @@ class HostNotAllowed(NetError):
 
 
 class FetchError(NetError):
-    """Raised when the source is unreachable or answers with an error."""
+    """Raised when the source is unreachable or answers with an error.
+
+    `status` is the HTTP status when the source answered (400, 404, ...), else None,
+    and `body` the start of its answer, so an adapter can tell a period that is not
+    published yet from a real error.
+    """
+
+    def __init__(self, message: str, status: int | None = None, body: str = ""):
+        super().__init__(message)
+        self.status = status
+        self.body = body
 
 
 class RecordingMissing(NetError):
@@ -140,11 +150,11 @@ class Client:
         url = build_url(base, params)
         check_url(url)  # before any I/O, in every mode
         if self.mode == "replay":
-            return self._replay(url)
+            return _raise_for_status(self._replay(url))
         resp = self._live_get(url)
         if self.mode == "record":
-            self._save(resp)
-        return resp
+            self._save(resp)  # error answers too, so replay fails the same way
+        return _raise_for_status(resp)
 
     def _live_get(self, url: str) -> Response:
         req = urllib.request.Request(
@@ -161,8 +171,12 @@ class Client:
                 status = r.status
                 ctype = r.headers.get_content_type() if r.headers else "application/json"
         except urllib.error.HTTPError as e:
+            if e.code >= 500 or e.code == 429:
+                # Transient: never recorded, always an error.
+                detail = e.read().decode("utf-8", errors="replace")[:300]
+                raise FetchError(f"HTTP {e.code} from {url}: {detail}", e.code, detail) from e
             detail = e.read().decode("utf-8", errors="replace")[:300]
-            raise FetchError(f"HTTP {e.code} from {url}: {detail}") from e
+            return Response(url, e.code, detail, _now(), replayed=False)
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             raise FetchError(f"could not reach {url}: {e}") from e
         if _is_text(ctype):
@@ -193,6 +207,12 @@ class Client:
             return Response(url, rec["status"], "", rec["retrieved_at"], replayed=True,
                             content=base64.b64decode(rec["body_base64"]))
         return Response(url, rec["status"], rec["body"], rec["retrieved_at"], replayed=True)
+
+
+def _raise_for_status(resp: Response) -> Response:
+    if resp.status >= 400:
+        raise FetchError(f"HTTP {resp.status} from {resp.url}: {resp.body}", resp.status, resp.body)
+    return resp
 
 
 def _now() -> str:

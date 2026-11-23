@@ -223,5 +223,90 @@ class NavTest(unittest.TestCase):
         self.assertEqual(str(res.readings[0].official_value), "-0.1")
 
 
+def _year(text, indicator, value, maps, period="2025", measure="annual_change", unit="percent"):
+    return {"id": "c1", "source_text": text, "status": "checkable", "indicator": indicator,
+            "measure": measure, "period": period, "unit": unit, "stated_value": value,
+            "labels": [], "mappings": [{"series_id": m} for m in maps]}
+
+
+KPI_YEAR = ["kpi_annual", "kpi_12m"]
+JAE_YEAR = ["kpi_jae_annual", "kpi_jae_12m"]
+UNEMP_YEAR = ["aku_annual", "aku_annual_break_adjusted", "nav_registered_annual"]
+
+
+class AnnualTest(unittest.TestCase):
+    """Annual figures (D21), against recorded SSB, NAV and Norges Bank responses."""
+
+    def setUp(self):
+        self.series = load()
+
+    def verify(self, claim):
+        run = Run(client(), self.series)
+        return verify_claim(_claims(claim)[0], run, date(2026, 11, 15), TODAY)
+
+    def readings(self, res):
+        return [(r.series_id, r.period, str(r.official_value)) for r in res.readings]
+
+    def test_a_year_has_the_annual_average_and_the_december_rate(self):
+        res = self.verify(_year("Inflasjonen i 2025 var 3,1 prosent", "kpi", "3.1", KPI_YEAR))
+        self.assertEqual(res.verdict, MATCHED)
+        self.assertEqual(self.readings(res), [("kpi_annual", "2025", "3.1"), ("kpi_12m", "2025-12", "3.2")])
+        self.assertNotIn("period_ambiguous", res.labels)
+        res = self.verify(_year("Inflasjonen i 2025 var 2,8 prosent", "kpi", "2.8", KPI_YEAR))
+        self.assertEqual(res.verdict, MISMATCHED)
+
+    def test_either_reading_can_match(self):
+        # 2024: annual average 3.1, but December only 2.2 (D4).
+        res = self.verify(_year("Inflasjonen i 2024 var 3,1 prosent", "kpi", "3.1", KPI_YEAR, period="2024"))
+        self.assertEqual(res.verdict, MATCHED)
+        self.assertEqual(res.chosen.series_id, "kpi_annual")
+
+    def test_annual_kpi_up_to_2025_is_the_rate_as_published(self):
+        # 14707 recalculated 2025 to 3.0; SSB published 3.1 (closed table 03014).
+        res = self.verify(_year("Inflasjonen i 2025 var 3,1 prosent", "kpi", "3.1", ["kpi_annual"]))
+        self.assertEqual(res.readings[0].observations[0].dims["_table"], "03014")
+
+    def test_kpi_jae_up_to_2025_tolerates_the_rebase_by_reporting_it(self):
+        res = self.verify(_year("KPI-JAE i 2025 var 3,0 prosent", "kpi_jae", "3.0", JAE_YEAR))
+        self.assertEqual(res.verdict, CANNOT_VERIFY)
+        self.assertIn("rebase_difference", res.labels)
+        res = self.verify(_year("KPI-JAE i 2025 var 2,5 prosent", "kpi_jae", "2.5", JAE_YEAR))
+        self.assertEqual(res.verdict, MISMATCHED)
+        self.assertNotIn("rebase_difference", res.labels)
+
+    def test_change_between_two_annual_rates(self):
+        res = self.verify(_year("Inflasjonen i 2025 var 0,1 prosentpoeng lavere enn i 2024", "kpi", "0.1",
+                                ["kpi_annual"], measure="change", unit="percentage_points"))
+        self.assertEqual(self.readings(res), [("kpi_annual", "2025", "0.0")])
+        self.assertEqual(res.verdict, MISMATCHED)
+
+    def test_unemployment_year_checks_aku_and_nav(self):
+        for value, verdict in (("4.5", MATCHED), ("2.2", MATCHED), ("3.3", MISMATCHED)):
+            with self.subTest(value=value):
+                res = self.verify(_year(f"Ledigheten i 2025 var {value} prosent", "unemployment", value,
+                                        UNEMP_YEAR, measure="level"))
+                self.assertEqual(res.verdict, verdict)
+        self.assertEqual(self.readings(res), [("aku_annual", "2025", "4.5"),
+                                              ("aku_annual_break_adjusted", "2025", "4.5"),
+                                              ("nav_registered_annual", "2025", "2.2")])
+
+    def test_policy_rate_and_eurnok_year_is_a_range(self):
+        res = self.verify(_year("Styringsrenten var 4,25 prosent i 2025", "policy_rate", "4.25",
+                                ["policy_rate"], measure="level"))
+        self.assertEqual(res.verdict, MATCHED)
+        self.assertEqual((str(res.readings[0].low), str(res.readings[0].high)), ("4", "4.5"))
+        res = self.verify(_year("Styringsrenten var 3,0 prosent i 2025", "policy_rate", "3.0",
+                                ["policy_rate"], measure="level"))
+        self.assertEqual(res.verdict, MISMATCHED)
+        res = self.verify(_year("Euroen kostet 11,7 kroner i 2025", "eurnok", "11.7", ["eurnok"],
+                                measure="level", unit="nok_per_eur"))
+        self.assertEqual(res.verdict, MATCHED)
+
+    def test_a_year_not_published_yet_cannot_be_verified(self):
+        res = self.verify(_year("Inflasjonen i 2026 var 3,0 prosent", "kpi", "3.0", KPI_YEAR, period="2026"))
+        self.assertEqual(res.verdict, CANNOT_VERIFY)
+        self.assertIn("no_data", res.labels)
+
+
 if __name__ == "__main__":
     unittest.main()

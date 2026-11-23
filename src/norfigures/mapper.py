@@ -24,6 +24,8 @@ def map_claim(raw: dict, series: dict[str, Series]) -> tuple[list[str], str | No
         return [], None
     ind, measure = raw.get("indicator"), raw.get("measure")
     h = hints(raw.get("source_text", ""), number=raw.get("stated_value"))
+    period = raw.get("period") or ""
+    year = len(period) == 4   # "inflasjonen i 2025": an annual figure (D21)
 
     if ind in ("policy_rate", "eurnok"):
         sid = _find(series, ind, "level")
@@ -39,12 +41,17 @@ def map_claim(raw: dict, series: dict[str, Series]) -> tuple[list[str], str | No
             return [], f"unemployment is a rate; '{measure}' cannot be checked on it."
         aku = {"trend": ["aku_trend"], "3mma": ["aku_3mma"]}.get(h.unemployment_series,
                                                                 ["aku_trend", "aku_3mma"])
+        nav = ["nav_registered"]
+        if year:
+            # A year: SSB's annual AKU rate (as published, and break adjusted) and
+            # NAV's annual average (D21).
+            aku, nav = ["aku_annual", "aku_annual_break_adjusted"], ["nav_registered_annual"]
         if h.unemployment_nav and not (h.unemployment_aku or h.unemployment_series):
-            want = ["nav_registered"]
+            want = nav
         elif h.unemployment_aku or h.unemployment_series:
             want = aku
         else:
-            want = aku + ["nav_registered"]
+            want = aku + nav
         ids = [sid for sid in want if sid in series]
         missing = [sid for sid in want if sid not in series]
         return ids, ("Not in the ledger yet: " + ", ".join(missing) + ".") if missing else None
@@ -78,6 +85,12 @@ def map_claim(raw: dict, series: dict[str, Series]) -> tuple[list[str], str | No
         indicators = ["kpi", "kpi_jae"]
     else:
         indicators = ["kpi"]
+
+    if year:
+        # A year has two readings (D21, D4): the annual average change, SSB's own
+        # annual figure, and the 12-month change in December. A change in the rate
+        # ("0,3 prosentpoeng lavere enn i 2024") is between two annual rates only.
+        measures = ["annual_change"] if measure == "change" else ["annual_change", "12_month_change"]
 
     out, missing = [], []
     for i in indicators:

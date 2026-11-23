@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..claims import INDICATORS, MEASURES, PERIOD_RE, STATUSES, UNITS
+from ..claims import EXTRACTED_MEASURES, INDICATORS, PERIOD_RE, STATUSES, UNITS
 from ..lexicon import PHRASES_PATH
 from ..net import REPO_ROOT
 from . import llm
@@ -45,7 +45,7 @@ OUTPUT_SCHEMA = {
                     "status": {"type": "string", "enum": list(STATUSES)},
                     "indicator": _nullable({"type": "string", "enum": list(INDICATORS) + ["other"]}),
                     "other_indicator": _nullable({"type": "string"}),
-                    "measure": _nullable({"type": "string", "enum": list(MEASURES)}),
+                    "measure": _nullable({"type": "string", "enum": list(EXTRACTED_MEASURES)}),
                     "period": _nullable({"type": "string"}),
                     "unit": _nullable({"type": "string", "enum": list(UNITS)}),
                     "stated_value": _nullable({"type": "string"}),

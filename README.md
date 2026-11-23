@@ -170,7 +170,9 @@ Claude Code wrote the code. I wrote the spec and made the calls; each one is in
 - Compares against the latest published value, not the value as first published.
   For 2025 and earlier, that is the rate SSB published before its 2026 rebase.
 - Numeric claims only. "Rekordsvak krone" is reported, not checked.
-- Annual averages ("inflasjonen i 2025") are not covered yet.
+- Annual figures ("inflasjonen i 2025") are checked against SSB's annual figure
+  and the December rate (D21). KPI-JAE's annual rates up to 2025 exist only as
+  recalculated after SSB's 2026 rebase, so a figure 0.1 off is "could not verify".
 
 ## Tests
 

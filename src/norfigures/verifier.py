@@ -198,9 +198,6 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
         if periods.period_start(claim.period) > reference:
             return cannot("forecast_not_checkable",
                           f"Period {claim.period} is after {reference.isoformat()}; it cannot be published yet.")
-        if periods.kind(claim.period) == "year":
-            return cannot("annual_not_supported",
-                          "Annual figures are not covered yet; only monthly and daily values.")
         candidates = [claim.period]
     elif published is None:
         return cannot("period_missing", "No period in the claim and no --published date to infer one from.")
@@ -245,11 +242,13 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
 
     if len(claim.mappings) > 1:
         res.add_label("ambiguous_measure")
-    if len({r.period for r in res.readings}) > 1:
+    if len({r.period for r in res.readings}) > 1 and not (
+            claim.period and periods.kind(claim.period) == "year"):
         res.add_label("period_ambiguous")
     res.period = res.chosen.period if res.chosen else None
 
     _decide(res, run)
+    _rebase_rule(res, run)
     # B43's "cannot verify" for an unsourced unemployment figure is gone: NAV's
     # registered rate is now one of the readings, so a figure that fits neither AKU
     # nor NAV is a mismatch (D20).
@@ -260,7 +259,7 @@ def _mapping_problem(claim: Claim, s: Series, check_measure: bool = True) -> str
     if not check_measure:
         pass
     elif claim.measure == "change":
-        if s.frequency == "M" and claim.unit not in (None, "percentage_points"):
+        if s.frequency in ("M", "A") and claim.unit not in (None, "percentage_points"):
             return "a change in an inflation rate is in percentage points"
     elif claim.measure != s.measure:
         return f"claim measure '{claim.measure}' does not match series measure '{s.measure}'"
@@ -273,9 +272,11 @@ def _mapping_problem(claim: Claim, s: Series, check_measure: bool = True) -> str
 
 def _read(claim: Claim, s: Series, period: str, run: Run) -> Reading:
     k = periods.kind(period)
+    if s.frequency == "A":
+        return _read_annual(claim, s, period[:4], run)
     if s.frequency == "M" and claim.measure == "change":
         # Change in the rate itself, in points (B27): this month's rate minus last month's.
-        month = period if k == "month" else period[:7]
+        month = period if k == "month" else (f"{period}-12" if k == "year" else period[:7])
         prev = periods.add_months(month, -1)
         r = Reading(s.id, month, "change")
         if s.in_break(prev) or s.in_break(month):
@@ -293,19 +294,21 @@ def _read(claim: Claim, s: Series, period: str, run: Run) -> Reading:
         return r
 
     if s.frequency == "M":
-        month = period if k == "month" else period[:7]
+        month = period if k == "month" else (f"{period}-12" if k == "year" else period[:7])
         obs = run.fetch(s, month, month, claim.id)
         r = Reading(s.id, month, "point", observations=obs[-1:])
         if obs:
             r.official_value = obs[-1].value
         else:
             r.note = f"{s.id} has no value for {month} yet"
+        if k == "year":
+            # A year read as the rate at its end: the 12-month change in December (D21).
+            r.note = (r.note + "; " if r.note else "") + f"{period} read as the December rate"
         return r
 
     # Daily series (policy rate, EUR/NOK).
     if claim.measure == "change":
-        start = periods.period_start(period)
-        end = periods.parse_day(period) if k == "day" else periods.month_bounds(period)[1]
+        start, end = periods.bounds(period)
         obs = run.fetch(s, (start - timedelta(days=DAILY_LOOKBACK_DAYS)).isoformat(),
                         end.isoformat(), claim.id)
         before = [o for o in obs if o.period < start.isoformat()]
@@ -351,8 +354,9 @@ def _read(claim: Claim, s: Series, period: str, run: Run) -> Reading:
             r.note = f"no observation on or before {period}"
         return r
 
-    # A month on a daily series: compare with the month's low and high (D9).
-    first, last = periods.month_bounds(period)
+    # A month or a year on a daily series: compare with the period's low and
+    # high (D9; for a year, D21).
+    first, last = periods.bounds(period)
     obs = run.fetch(s, first.isoformat(), last.isoformat(), claim.id)
     r = Reading(s.id, period, "range", observations=list(obs))
     if obs:
@@ -362,6 +366,48 @@ def _read(claim: Claim, s: Series, period: str, run: Run) -> Reading:
     else:
         r.note = f"no observations in {period}"
     return r
+
+
+def _read_annual(claim: Claim, s: Series, year: str, run: Run) -> Reading:
+    """An annual series (D21): the year's value, or its change from the year before."""
+    if claim.measure == "change":
+        prev = str(int(year) - 1)
+        obs = run.fetch(s, prev, year, claim.id, same_table=True)
+        r = Reading(s.id, year, "change")
+        if len(obs) == 2 and obs[0].period == prev and obs[1].period == year:
+            r.observations = [obs[0], obs[1]]
+            r.official_value = obs[1].value - obs[0].value
+            r.note = f"{s.concept}: {prev} {obs[0].value} -> {year} {obs[1].value}"
+        else:
+            r.note = f"{s.id} has no values for both {prev} and {year}"
+        return r
+    obs = run.fetch(s, year, year, claim.id)
+    r = Reading(s.id, year, "point", observations=obs[-1:])
+    if obs:
+        r.official_value = obs[-1].value
+    else:
+        r.note = f"{s.id} has no value for {year} yet"
+    return r
+
+
+def _rebase_rule(res: ClaimResult, run: Run) -> None:
+    """D21: KPI-JAE's annual rates up to 2025 exist only as recalculated after the
+    2026 rebase, which can move them by 0.1. A figure exactly 0.1 off such a value
+    may be the rate as published, so it is not called a mismatch."""
+    if res.verdict != MISMATCHED:
+        return
+    stated = res.claim.stated_value
+    for r in res.readings:
+        s = run.series[r.series_id]
+        if (s.rebased_until and r.kind == "point" and r.official_value is not None
+                and r.period <= s.rebased_until
+                and abs(abs(stated) - abs(round_like(r.official_value, stated))) == Decimal("0.1")):
+            res.verdict = CANNOT_VERIFY
+            res.add_label("rebase_difference")
+            res.notes.append(f"{r.series_id} {r.period} is {r.official_value} as SSB recalculated it "
+                             "after the 2026 rebase; the rate as published may have been 0.1 "
+                             "different, and SSB has no table of it (D21).")
+            return
 
 
 def _decide(res: ClaimResult, run: Run) -> None:

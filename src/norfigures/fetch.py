@@ -36,7 +36,7 @@ def fetch_series(client: Client, series: Series, start: str | None = None,
                                  start=start, end=end, last_n=last_n)
     if series.source == "nav":
         return nav.fetch(client, series.id, series.table, series.selection,
-                         start=start, end=end, last_n=last_n)
+                         start=start, end=end, last_n=last_n, annual=series.frequency == "A")
     raise ValueError(f"unknown source {series.source!r}")
 
 

@@ -1,0 +1,6 @@
+{
+ "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14706/data?lang=en&outputFormat=json-stat2&valueCodes[ContentsCode]=Tolvmanedersendring&valueCodes[KPIavledetSerie]=KPI&valueCodes[Tid]=2026M12",
+ "status": 400,
+ "retrieved_at": "2026-11-23T19:27:24Z",
+ "body": "{\"type\":\"Parameter error\",\"title\":\"Non-existent value\",\"status\":400}"
+}

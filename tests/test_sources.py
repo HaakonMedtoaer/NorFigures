@@ -71,5 +71,21 @@ class ParserTest(unittest.TestCase):
             parse_sdmx({"nope": 1}, "s", "u", "t")
 
 
+class NotPublishedYetTest(unittest.TestCase):
+    """SSB answers 400 for a period it does not hold yet and for a wrong code (D21)."""
+
+    def test_a_year_after_the_newest_is_no_data(self):
+        from norfigures.sources import ssb
+        sel = {"KPIavledetSerie": "KPI", "ContentsCode": "Aarsendring"}
+        self.assertEqual(ssb.fetch(Client("replay"), "kpi_annual", "14707", sel, start="2026", end="2026"), [])
+
+    def test_a_wrong_code_still_fails(self):
+        from norfigures.net import FetchError
+        from norfigures.sources import ssb
+        sel = {"KPIavledetSerie": "NO-SUCH-SERIES", "ContentsCode": "Aarsendring"}
+        with self.assertRaises(FetchError):
+            ssb.fetch(Client("replay"), "x", "14707", sel, start="2025", end="2025")
+
+
 if __name__ == "__main__":
     unittest.main()

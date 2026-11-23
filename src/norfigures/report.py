@@ -68,7 +68,7 @@ def _verdict_text(res: ClaimResult) -> str:
     text = res.verdict.replace("_", " ").upper()
     reasons = [l for l in res.labels if l in (
         "forecast_not_checkable", "no_figure", "out_of_scope", "period_missing", "no_data",
-        "incomplete_data", "mapping_mismatch", "annual_not_supported", "ambiguous")]
+        "incomplete_data", "mapping_mismatch", "rebase_difference", "ambiguous")]
     if res.verdict == CANNOT_VERIFY and reasons:
         text += f" ({reasons[0].replace('_', ' ')})"
     return text

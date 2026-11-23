@@ -10,7 +10,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from itertools import product
 
-from ..net import Client
+from ..net import Client, FetchError
 from .base import Observation, SourceError
 
 BASE = "https://data.ssb.no/api/pxwebapi/v2"
@@ -60,19 +60,40 @@ def fetch(client: Client, series_id: str, table: str, selection: dict[str, str],
           last_n: int | None = None) -> list[Observation]:
     """Fetch one series. `selection` fixes every non-time dimension to one code.
 
-    Periods are YYYY-MM. Give either start/end or last_n (default: last 1).
+    Periods are YYYY-MM for monthly tables and YYYY for annual ones. Give either
+    start/end or last_n (default: last 1).
     """
     params = {"lang": "en", "outputFormat": "json-stat2"}
     for dim, code in selection.items():
         params[f"valueCodes[{dim}]"] = code
     if start or end:
-        lo = to_ssb_month(start or end)
-        hi = to_ssb_month(end or start)
-        params["valueCodes[Tid]"] = _range(lo, hi)
+        lo, hi = start or end, end or start
+        if re.fullmatch(r"\d{4}", lo) and re.fullmatch(r"\d{4}", hi):
+            if lo > hi:
+                raise ValueError(f"start {lo} is after end {hi}")
+            params["valueCodes[Tid]"] = ",".join(str(y) for y in range(int(lo), int(hi) + 1))
+        else:
+            params["valueCodes[Tid]"] = _range(to_ssb_month(lo), to_ssb_month(hi))
     else:
         params["valueCodes[Tid]"] = f"top({last_n or 1})"
-    resp = client.get(f"{BASE}/tables/{table}/data", params)
+    try:
+        resp = client.get(f"{BASE}/tables/{table}/data", params)
+    except FetchError as e:
+        if (start or end) and _not_published_yet(e, client, series_id, table, selection, start or end):
+            return []
+        raise
     return parse_jsonstat(resp.json(), series_id, resp.url, resp.retrieved_at)
+
+
+def _not_published_yet(err: FetchError, client: Client, series_id: str, table: str,
+                       selection: dict[str, str], start: str) -> bool:
+    """SSB answers 400 "Non-existent value" for a period the table does not hold yet,
+    and also for a wrong selection code. Only the first is "no value yet": the same
+    selection must answer, with a newest period before the one asked for (D21)."""
+    if err.status != 400 or "Non-existent value" not in err.body:
+        return False
+    latest = fetch(client, series_id, table, selection, last_n=1)  # raises if the selection is wrong
+    return bool(latest) and latest[-1].period < start
 
 
 def _range(lo: str, hi: str) -> str:

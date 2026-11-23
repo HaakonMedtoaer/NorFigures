@@ -1,5 +1,7 @@
+import io
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
@@ -127,6 +129,29 @@ class BinaryBodyTest(unittest.TestCase):
         r.read.return_value = b"x" * (net.MAX_BODY_BYTES + 1)
         with mock.patch("urllib.request.urlopen", return_value=fake), self.assertRaises(net.FetchError):
             Client("live").get("https://data.ssb.no/x")
+
+
+class ErrorAnswerTest(unittest.TestCase):
+    def test_a_400_answer_is_recorded_and_replays_as_the_same_error(self):
+        tmp = Path(tempfile.mkdtemp())
+        url = "https://data.ssb.no/api/x?y=1"
+        err = urllib.error.HTTPError(url, 400, "Bad Request", {},
+                                     io.BytesIO(b'{"title":"Non-existent value","status":400}'))
+        with mock.patch("urllib.request.urlopen", side_effect=err), self.assertRaises(net.FetchError) as live:
+            Client("record", recordings_dir=tmp).get(url)
+        self.assertEqual(live.exception.status, 400)
+        with self.assertRaises(net.FetchError) as replay:
+            Client("replay", recordings_dir=tmp).get(url)
+        self.assertEqual((replay.exception.status, replay.exception.body), (400, live.exception.body))
+
+    def test_server_errors_and_rate_limits_are_never_recorded(self):
+        tmp = Path(tempfile.mkdtemp())
+        for code in (429, 503):
+            err = urllib.error.HTTPError("https://data.ssb.no/x", code, "x", {}, io.BytesIO(b"busy"))
+            with self.subTest(code=code), mock.patch("urllib.request.urlopen", side_effect=err), \
+                    self.assertRaises(net.FetchError):
+                Client("record", recordings_dir=tmp).get("https://data.ssb.no/x")
+        self.assertEqual(list(tmp.iterdir()), [])
 
 
 class ReplayTest(unittest.TestCase):

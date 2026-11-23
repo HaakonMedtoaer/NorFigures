@@ -154,6 +154,24 @@ class MapperTest(unittest.TestCase):
         self.assertEqual(self.m("Styringsrenten er 4,5 %", indicator="policy_rate", measure="level"),
                          ["policy_rate"])
 
+    def test_a_year_maps_to_the_annual_series_and_december(self):
+        y = dict(period="2025")
+        self.assertEqual(self.m("KPI steg 3,1 prosent i 2025", **y), ["kpi_annual", "kpi_12m"])
+        self.assertEqual(self.m("Inflasjonen var 3,1 prosent i 2025", **y),
+                         ["kpi_annual", "kpi_12m", "kpi_jae_annual", "kpi_jae_12m"])
+        self.assertEqual(self.m("Prisene steg 3,1 prosent i 2025", **y), ["kpi_annual", "kpi_12m"])
+        self.assertEqual(self.m("Inflasjonen i 2025 var 0,1 prosentpoeng lavere enn i 2024", period="2025",
+                                indicator="kpi", measure="change", unit="percentage_points"),
+                         ["kpi_annual", "kpi_jae_annual"])
+        u = dict(indicator="unemployment", measure="level", period="2025")
+        self.assertEqual(self.m("Arbeidsledigheten var 4,5 % i 2025", **u),
+                         ["aku_annual", "aku_annual_break_adjusted", "nav_registered_annual"])
+        self.assertEqual(self.m("AKU-ledigheten var 4,5 % i 2025", **u),
+                         ["aku_annual", "aku_annual_break_adjusted"])
+        self.assertEqual(self.m("Den registrerte ledigheten var 2,2 % i 2025", **u), ["nav_registered_annual"])
+        self.assertEqual(self.m("Styringsrenten var 4,25 % i 2025", indicator="policy_rate",
+                                measure="level", period="2025"), ["policy_rate"])
+
     def test_unemployment_source_words_pick_the_series(self):
         u = dict(indicator="unemployment", measure="level")
         self.assertEqual(self.m("Arbeidsledigheten var 4,6 %", **u),

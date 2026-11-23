@@ -25,8 +25,11 @@ _REQUIRED = {
 }
 
 
-def _next_month(month: str) -> str:
-    y, m = int(month[:4]), int(month[5:7])
+def _next_period(period: str) -> str:
+    """The month or year after `period` (YYYY-MM or YYYY)."""
+    if len(period) == 4:
+        return str(int(period) + 1)
+    y, m = int(period[:4]), int(period[5:7])
     return f"{y + 1:04d}-01" if m == 12 else f"{y:04d}-{m + 1:02d}"
 
 
@@ -48,7 +51,7 @@ class Series:
     selection: dict | None = None
     flow: str | None = None
     key: str | None = None
-    # Older periods read from other tables: [{"until": "YYYY-MM", "table", "selection"}],
+    # Older periods read from other tables: [{"until": "YYYY-MM" (or "YYYY"), "table", "selection"}],
     # oldest last-period first. Periods after the last `until` use table/selection (B24).
     history: tuple = ()
     # Monthly series: month M is published between these days of month M+1 (inclusive).
@@ -60,6 +63,10 @@ class Series:
     # Breaks in the series: [["YYYY-MM", "YYYY-MM"], ...]. A change between two
     # months is not computed when either month is inside a break (D20).
     breaks: tuple = ()
+    # Annual series whose values up to this year are SSB's recalculation after the
+    # 2026 rebase, with no table of the rates as published. A stated figure exactly
+    # 0.1 from it cannot be judged: the published rate may have been that (D21).
+    rebased_until: str | None = None
 
     def in_break(self, month: str) -> bool:
         return any(lo <= month <= hi for lo, hi in self.breaks)
@@ -73,7 +80,7 @@ class Series:
             if lo <= h["until"]:
                 hi = min(end, h["until"])
                 out.append((lo, hi, h["table"], h["selection"]))
-                lo = _next_month(hi)
+                lo = _next_period(hi)
         if lo <= end:
             out.append((lo, end, self.table, self.selection))
         return out
@@ -115,9 +122,11 @@ def load(path: Path | None = None) -> dict[str, Series]:
         if hist and source != "ssb":
             raise LedgerError(f"series {sid}: history is only supported for SSB series")
         for h in hist:
-            if not (isinstance(h, dict) and re.fullmatch(r"\d{4}-\d{2}", str(h.get("until", "")))
+            pat = r"\d{4}" if spec.get("frequency") == "A" else r"\d{4}-\d{2}"
+            if not (isinstance(h, dict) and re.fullmatch(pat, str(h.get("until", "")))
                     and h.get("table") and isinstance(h.get("selection"), dict)):
-                raise LedgerError(f"series {sid}: each history entry needs until (YYYY-MM), table, selection")
+                raise LedgerError(f"series {sid}: each history entry needs until (YYYY-MM, or YYYY "
+                                  "for an annual series), table, selection")
         if [h["until"] for h in hist] != sorted(h["until"] for h in hist):
             raise LedgerError(f"series {sid}: history must be in order of 'until'")
         rw = spec.get("release_window")
@@ -134,6 +143,11 @@ def load(path: Path | None = None) -> dict[str, Series]:
         if not all(isinstance(b, list) and len(b) == 2 and all(re.fullmatch(r"\d{4}-\d{2}", str(x)) for x in b)
                    and b[0] <= b[1] for b in brk):
             raise LedgerError(f"series {sid}: breaks must be [[\"YYYY-MM\", \"YYYY-MM\"], ...]")
+        if spec.get("frequency") not in ("M", "A", "B"):
+            raise LedgerError(f"series {sid}: frequency must be M, A or B")
+        ru = spec.get("rebased_until")
+        if ru is not None and not (re.fullmatch(r"\d{4}", str(ru)) and spec.get("frequency") == "A"):
+            raise LedgerError(f"series {sid}: rebased_until must be a year on an annual series")
         if source == "nav":
             sel = spec.get("selection") or {}
             if not (isinstance(sel.get("sheet"), list) and sel["sheet"] and isinstance(sel.get("row"), str)):

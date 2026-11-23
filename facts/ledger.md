@@ -68,6 +68,17 @@ Confirmed against the live APIs on 2026-11-14.
 - `release_window` (monthly series): month M is published between these days of
   month M+1 (month M itself with `"release_month_offset": 0`). Without it, the
   KPI default applies: days 1 to 15 of month M+1 (B11).
+- Annual figures (D21, confirmed 2026-11-23). KPI: annual average change
+  ("Aarsendring"), table 14707 from 2026 and, up to 2025, the closed table 03014
+  with the rates as published (14707 recalculates 2020, 2021, 2024 and 2025 by
+  0.1; 2025: published 3.1, now 3.0). KPI-JAE: only 14707 exists, so values up
+  to 2025 are recalculated (`rebased_until`); a rate computed from the closed
+  monthly index 05327 drifts by 0.1 (rounded index), so it is not used. AKU:
+  table 05111 (as published, SSB's headline; 2025: 4.5) and the break-adjusted
+  13618 (differs only before 2021). NAV: file HL090 ("Helt ledige. Fylke.
+  Tidsserie år"), sheet "2. Fylke. Prosent av arbeidsstyrken", row "I alt", on
+  the "Helt ledige" page; read from 2009, since 2001 is incomplete in the file
+  (0.9 %, about a third of the usual count) and 2002 to 2008 are blank.
 - NAV (confirmed 2026-11-23): no API. Table HL050 ("Helt ledige. Kjønn og alder.
   Tidsserie måned"), sheet "2. Kjønn Prosent av arbeidsstyrken", row "I alt",
   one decimal (cell format `#,##0.0`). The file for the current year is linked
@@ -105,6 +116,23 @@ Confirmed against the live APIs on 2026-11-14.
                  "selection": {"Konsumgrp": "JAE_TOTAL", "ContentsCode": "Tolvmanedersendring"}}],
     "confirmed": "2026-11-14"
   },
+  "kpi_annual": {
+    "indicator": "kpi", "measure": "annual_change", "unit": "percent",
+    "concept": "Headline CPI, annual average change",
+    "source": "ssb", "frequency": "A", "table": "14707",
+    "selection": {"KPIavledetSerie": "KPI", "ContentsCode": "Aarsendring"},
+    "history": [{"until": "2025", "table": "03014",
+                 "selection": {"Konsumgrp": "TOTAL", "ContentsCode": "Aarsendring"}}],
+    "confirmed": "2026-11-23"
+  },
+  "kpi_jae_annual": {
+    "indicator": "kpi_jae", "measure": "annual_change", "unit": "percent",
+    "concept": "CPI-ATE (core), annual average change",
+    "source": "ssb", "frequency": "A", "table": "14707",
+    "selection": {"KPIavledetSerie": "KPI-JAE", "ContentsCode": "Aarsendring"},
+    "rebased_until": "2025",
+    "confirmed": "2026-11-23"
+  },
   "aku_trend": {
     "indicator": "unemployment", "measure": "level", "unit": "percent",
     "concept": "Unemployment rate (AKU), trend, % of labour force",
@@ -128,6 +156,27 @@ Confirmed against the live APIs on 2026-11-14.
     "selection": {"sheet": ["Kjønn", "Prosent"], "row": "I alt"},
     "release_window": [18, 31], "release_month_offset": 0,
     "breaks": [["2025-04", "2025-07"]],
+    "confirmed": "2026-11-23"
+  },
+  "aku_annual": {
+    "indicator": "unemployment", "measure": "level", "unit": "percent",
+    "concept": "Unemployment rate (AKU), annual average, % of labour force",
+    "source": "ssb", "frequency": "A", "table": "05111",
+    "selection": {"ArbStyrkStatus": "2", "Kjonn": "0", "Alder": "15-74", "ContentsCode": "Prosent"},
+    "confirmed": "2026-11-23"
+  },
+  "aku_annual_break_adjusted": {
+    "indicator": "unemployment", "measure": "level", "unit": "percent",
+    "concept": "Unemployment rate (AKU), annual average, break adjusted, % of labour force",
+    "source": "ssb", "frequency": "A", "table": "13618",
+    "selection": {"ArbStyrkStatus": "2", "Kjonn": "0", "Alder": "15-74", "ContentsCode": "Prosent"},
+    "confirmed": "2026-11-23"
+  },
+  "nav_registered_annual": {
+    "indicator": "unemployment", "measure": "level", "unit": "percent",
+    "concept": "Registered unemployment (NAV), annual average, % of labour force",
+    "source": "nav", "frequency": "A", "table": "HL090",
+    "selection": {"sheet": ["Prosent"], "row": "I alt", "since": "2009"},
     "confirmed": "2026-11-23"
   },
   "policy_rate": {

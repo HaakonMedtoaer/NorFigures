@@ -48,6 +48,10 @@ class LiveSourcesTest(unittest.TestCase):
                 if s.frequency == "M":
                     oldest = add_months(month_of(self.today), -MAX_AGE_MONTHS["M"])
                     self.assertGreaterEqual(obs.period, oldest, f"{sid}: newest month is {obs.period}")
+                elif s.frequency == "A":
+                    # Last year's figure comes out in January to February.
+                    self.assertGreaterEqual(int(obs.period), self.today.year - 2,
+                                            f"{sid}: newest year is {obs.period}")
                 else:
                     age = (self.today - date.fromisoformat(obs.period)).days
                     self.assertLessEqual(age, MAX_AGE_DAYS["B"], f"{sid}: newest day is {obs.period}")
@@ -63,6 +67,14 @@ class LiveSourcesTest(unittest.TestCase):
                                  s.selection["row"], url)
         self.assertEqual(max(values), month, "the file name and its newest month disagree")
         self.assertEqual(sorted(values)[0][5:], "01", "the file should start in January")
+
+    def test_nav_annual_file_has_the_shape_we_read(self):
+        s = self.series["nav_registered_annual"]
+        page = self.client.get(nav.CURRENT_PAGE).body
+        url, year = nav.find_table_link(page, s.table, nav.CURRENT_PAGE)
+        values = nav.parse_table(self.client.get(url).content, tuple(s.selection["sheet"]),
+                                 s.selection["row"], url, annual=True)
+        self.assertEqual(max(values), year, "the file name and its newest year disagree")
 
     def test_nav_archive_for_last_year(self):
         s = self.series["nav_registered"]
