@@ -81,8 +81,37 @@ class ReviewTest(unittest.TestCase):
         self.assertEqual(c["measure"], "change")
 
     def test_out_of_scope_words(self):
-        c = review(claim("Arbeidsledigheten var 4,5 prosent", indicator="kpi"))
-        self.assertEqual((c["status"], c["indicator"]), ("out_of_scope", "unemployment"))
+        c = review(claim("Den registrerte arbeidsledigheten var 2,1 prosent", indicator="unemployment"))
+        self.assertEqual((c["status"], c["indicator"]), ("out_of_scope", "registered_unemployment"))
+        c = review(claim("BNP steg 0,4 prosent", indicator="kpi"))
+        self.assertEqual((c["status"], c["indicator"]), ("out_of_scope", "gdp"))
+
+    def test_unemployment_is_aku_and_names_its_source(self):
+        # D16: AKU is in scope. Without an AKU word it may be NAV's rate (B43).
+        c = review(claim("Arbeidsledigheten var 4,5 prosent", indicator="kpi", measure="level"))
+        self.assertEqual((c["status"], c["indicator"]), ("checkable", "unemployment"))
+        self.assertIn("unemployment_source_unnamed", c["labels"])
+        c = review(claim("AKU-ledigheten var 4,5 prosent", indicator="unemployment", measure="level"))
+        self.assertNotIn("unemployment_source_unnamed", c["labels"])
+
+    def test_unemployment_for_a_group_is_out_of_scope(self):
+        for text in ("Ledigheten blant unge var 9,1 prosent", "Ungdomsledigheten steg til 9,1 prosent"):
+            with self.subTest(text=text):
+                c = review(claim(text, indicator="unemployment", measure="level"))
+                self.assertEqual((c["status"], c["indicator"]), ("out_of_scope", "unemployment_group"))
+
+    def test_unemployment_change_in_points(self):
+        c = review(claim("Ledigheten økte med 0,2 prosentpoeng", indicator="unemployment", measure="level"))
+        self.assertEqual((c["measure"], c["unit"]), ("change", "percentage_points"))
+
+    def test_price_change_in_percent_is_not_a_rate_change(self):
+        # B44: "Prisene steg 0,3 prosent" is a price change, not a change in the rate.
+        c = review(claim("Prisene steg 0,3 prosent i oktober", measure="change", stated_value="0,3"))
+        self.assertEqual(c["measure"], "12_month_change")
+        self.assertEqual(map_claim(c, load())[0], ["kpi_12m", "kpi_monthly"])
+        c = review(claim("Tolvmånedersveksten steg 1,3 prosentpoeng", measure="change",
+                         unit="percentage_points", stated_value="1,3"))
+        self.assertEqual(c["measure"], "change")
 
     def test_sub_index_is_out_of_scope(self):
         c = review(claim("Matvareprisene steg 8,6 prosent de siste tolv månedene"))
@@ -161,13 +190,13 @@ class PrepareTest(unittest.TestCase):
         extracted = [
             claim("Inflasjonen var 3,1 % i oktober"),
             claim("KPI-JAE steg 0,2 prosent fra forrige måned", indicator="kpi_jae"),
-            claim("Arbeidsledigheten var 4,5 prosent", indicator="other"),
+            claim("Arbeidsledigheten var 4,5 prosent", indicator="other", measure="level"),
         ]
         out = prepare(extracted, load(), log)
         self.assertEqual([m["series_id"] for m in out[0]["mappings"]], ["kpi_12m", "kpi_jae_12m"])
         self.assertEqual((out[1]["status"], out[1]["mappings"]), ("ambiguous", []))
         self.assertIn("unmapped", out[1]["labels"])
-        self.assertEqual(out[2]["status"], "out_of_scope")
+        self.assertEqual([m["series_id"] for m in out[2]["mappings"]], ["aku_trend", "aku_3mma"])
         maps = [e for e in log.events if e["stage"] == "map"]
         self.assertEqual([e["claim_id"] for e in maps], ["c1", "c1", "c1"])
         self.assertEqual(maps[0]["detail"]["claim_status"], "checkable")

@@ -42,8 +42,10 @@ INDICATORS = [
 KIND_LABEL = {"ai": "AI agent · Claude Haiku 5.5", "code": "Code", "source": "Source"}
 
 SHORT = {"kpi_12m": "KPI", "kpi_jae_12m": "KPI-JAE", "kpi_mom": "KPI", "kpi_jae_mom": "KPI-JAE",
-         "policy_rate": "policy rate", "eurnok": "EUR/NOK"}
-INDICATOR_NAME = {"kpi": "KPI", "kpi_jae": "KPI-JAE", "policy_rate": "Policy rate", "eurnok": "EUR/NOK"}
+         "policy_rate": "policy rate", "eurnok": "EUR/NOK",
+         "aku_trend": "AKU trend", "aku_3mma": "AKU 3-month average"}
+INDICATOR_NAME = {"kpi": "KPI", "kpi_jae": "KPI-JAE", "policy_rate": "Policy rate", "eurnok": "EUR/NOK",
+                  "unemployment": "Unemployment (AKU)"}
 MEASURE_NAME = {"12_month_change": "12-month", "monthly_change": "monthly", "level": "level",
                 "change": "change"}
 VERDICT = {"matched": ("✓", "Matched"), "mismatched": ("✗", "Mismatched"),
@@ -102,7 +104,8 @@ def map_caption(d: dict) -> str:
 def fetch_caption(d: dict, observed: str | None) -> str:
     sid = d["series_id"]
     if d.get("source") == "ssb":
-        what = f"{_series_label(sid)} {MEASURE_NAME.get(_measure_of(sid), '')}".strip()
+        measure = _measure_of(sid)
+        what = _series_label(sid) if measure == "level" else f"{_series_label(sid)} {MEASURE_NAME[measure]}"
         return f"{d['ref'][0].upper()}{d['ref'][1:]} · {what} · {_period(d)}"
     return f"{d['ref']} · {observed or d['end']}"
 

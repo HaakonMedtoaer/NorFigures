@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-# KPI for month M is released by SSB around the 10th of month M+1 (ledger).
-# Up to this day of the month we cannot tell whether last month's figure was
-# already out, so both candidate months are checked (D14 with D4/D5).
-KPI_RELEASE_UNCERTAIN_UNTIL_DAY = 15
+# Default release window for a monthly series: KPI for month M is released by SSB
+# around the 10th of month M+1 (ledger). Up to the 15th we cannot tell whether last
+# month's figure was already out, so both candidate months are checked (D14, B11).
+DEFAULT_RELEASE_WINDOW = (1, 15)
 
 
 def kind(period: str) -> str:
@@ -43,9 +43,17 @@ def period_start(period: str) -> date:
     return date(int(period), 1, 1)
 
 
-def infer_monthly(published: date) -> list[str]:
-    """Candidate months for a monthly figure quoted without a period (D14)."""
+def infer_monthly(published: date, window: tuple[int, int] | None = None) -> list[str]:
+    """Candidate months for a monthly figure quoted without a period (D14).
+
+    `window` is (first_day, last_day) of month M+1 in which month M is published
+    (ledger `release_window`). Before the window, the latest published month is
+    M-2; inside it, either could be meant, so both are checked; after it, M-1 (B42).
+    """
+    first, last_day = window or DEFAULT_RELEASE_WINDOW
     last = add_months(month_of(published), -1)
-    if published.day <= KPI_RELEASE_UNCERTAIN_UNTIL_DAY:
+    if published.day < first:
+        return [add_months(last, -1)]
+    if published.day <= last_day:
         return [last, add_months(last, -1)]
     return [last]

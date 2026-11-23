@@ -38,5 +38,9 @@ def fetch_series(client: Client, series: Series, start: str | None = None,
 
 
 def latest(client: Client, series: Series) -> Observation | None:
+    """The newest period that has a value. A centred series (AKU 3-month average, B45)
+    lists its newest month as missing until the next release, so look back a little."""
     obs = fetch_series(client, series, last_n=1)
+    if not obs:
+        obs = fetch_series(client, series, last_n=3)
     return obs[-1] if obs else None

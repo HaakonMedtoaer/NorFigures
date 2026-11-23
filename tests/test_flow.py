@@ -42,7 +42,7 @@ class AnimationTest(unittest.TestCase):
     def test_captions_from_the_spec(self):
         caps = [s.caption for s in self.tl.steps]
         for want in ("Found 3 claims", "inflasjonen → KPI and KPI-JAE",
-                     "Table 14706 · KPI 12-month · 2026-10", "IR/B.KPRA.SD.R · 2026-11-12",
+                     "Table 14706 · KPI 12-month · 2026-10", "IR/B.KPRA.SD.R · 2026-11-13",
                      "3.1 vs 3.6", "0 matched · 2 mismatched · 1 cannot verify · exit 1"):
             self.assertIn(want, caps)
         self.assertEqual([v.verdict for v in self.tl.verdicts], ["mismatched", "mismatched", "cannot_verify"])

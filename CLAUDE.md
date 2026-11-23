@@ -44,6 +44,10 @@ claims and which series answers it. It never supplies a number. Every
 - Refresh recordings only on purpose: `NORFIGURES_RECORD=1 python -m unittest`
   re-runs every test against the live APIs and saves the responses. Commit the
   new files in `tests/recorded/http/`. A new fixture case needs this once.
+  The full suite now makes more SSB requests than SSB's limit of 40 a minute
+  allows, so a full record run hits HTTP 429. To add recordings, fetch only the
+  URLs named in `RecordingMissing` errors from the offline run, a few seconds
+  apart (`Client("record").get(url)` in `net.py`).
 - Model outputs: `norfigures record-agents` runs the extractor live on every
   fixture text (needs ANTHROPIC_API_KEY) and saves to `tests/recorded/agents/`.
   Re-record after changing `agents/extractor.md`, `facts/phrases.md` or the model.

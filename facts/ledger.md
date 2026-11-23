@@ -13,6 +13,8 @@ Code reads the `series` JSON block below. Edit it here and nowhere else.
 | Norges Bank's operational inflation target | "en årsvekst i konsumprisene som over tid er nær 2 pst." (annual CPI growth close to 2 % over time) | Bestemmelse om pengepolitikken, adopted 18 September 2026; same wording as the 2018 and 2019 regulations it replaces. [Norges Bank press release](https://www.norges-bank.no/aktuelt/nyheter/Pressemeldinger/2026/2026-09-18-mandat/) | 2026-11-19 |
 | CPI reference year in SSB tables from 2026 | 2025 = 100 | SSB table 14706 notes | 2026-11-14 |
 | SSB release timing for KPI | KPI for month M is published on the 10th of month M+1, or the nearest working day (Fri 9 Oct 2026, Mon 11 May 2026); July is later (15 Jul 2026). Inference checks both possible months on days 1 to 15 (B11), which covers all of these. | [SSB article list](https://www.ssb.no/priser-og-prisindekser/konsumpriser/statistikk/konsumprisindeksen/artikler), 2025 and 2026 | 2026-11-19 |
+| SSB release timing for AKU (labour force survey) | Monthly figures for month M are published 3 to 4 weeks after M ends ("Månedlig publisering av trendtall og sesongjusterte tall 3-4 uker etter utløpet av måneden"). Observed for February to September 2026: day 21 to 26 of month M+1 (September 2026: 22 October). Inference uses the window day 20 to 27 (B42). | [SSB AKU statistics page](https://www.ssb.no/arbeid-og-lonn/sysselsetting/statistikk/arbeidskraftundersokelsen), [AKU articles](https://www.ssb.no/arbeid-og-lonn/sysselsetting/statistikk/arbeidskraftundersokelsen/artikler) | 2026-11-23 |
+| SSB's headline AKU unemployment rate | The **trend** figure. The statistics page's key-figure table is headed "Trendtall" (September 2026: 4,6 % of the labour force, 141 000 people), and table 13760's note recommends the trend and the 3-month moving average of seasonally adjusted figures; the other two series are "hovedsakelig av hensyn til ekspertbrukere". | SSB AKU statistics page; table 13760 notes | 2026-11-23 |
 | Terms of use for the data | SSB: CC BY 4.0, including the API (credit SSB). Norges Bank: open API, no sign-in; site terms allow copying with Norges Bank named as source. No rate limit is published; SSB's API answers 40 requests a minute. | [SSB licence](https://www.ssb.no/diverse/lisens), [SSB API](https://www.ssb.no/api), [Norges Bank copyright](https://www.norges-bank.no/Opphavsrett/), [Norges Bank open data](https://www.norges-bank.no/tema/statistikk/apne-data/) | 2026-11-19 |
 
 ## Indicator definitions
@@ -27,6 +29,14 @@ Code reads the `series` JSON block below. Edit it here and nowhere else.
 - **Policy rate (styringsrenten)**: the sight deposit rate. A value applies to a
   date, and the rate in force on a date is the last observation on or before it.
 - **EUR/NOK**: Norges Bank's daily exchange rate, NOK per 1 EUR, business days only.
+- **Unemployment (AKU)**: SSB's labour force survey, unemployed persons aged 15 to 74
+  as a percent of the labour force. "Arbeidsledigheten" and "ledigheten" with no
+  source named mean this figure (D16), but may be NAV's registered unemployment,
+  which is not covered yet (B43). The 3-month moving average is named after its
+  **middle** month: the figure for February is the average of January to March.
+- **Registered unemployment (NAV)**: people registered as wholly unemployed with
+  NAV ("registrert ledighet", "helt ledige"). A different, lower figure. Out of
+  scope until NAV is added (D16).
 
 ## Canonical series
 
@@ -43,6 +53,15 @@ Confirmed against the live APIs on 2026-11-14.
   2026-11-18 against the March 2025 release (KPI 3.6, KPI-JAE 3.4).
 - SSB rate limit observed: 40 requests per 60 seconds.
 - Norges Bank series are business-daily (`B`). There are no weekend values.
+- AKU: table 13760 (confirmed 2026-11-23; 2006M01 to 2026M09, updated 22 October
+  2026). `ArbledProsArbstyrk`, both sexes (`Kjonn` 0), ages 15 to 74, published
+  with one decimal. `Justering` T is the trend (canonical, SSB's headline); 3MGG
+  is the 3-month moving average of seasonally adjusted figures, named after its
+  middle month, so its latest month comes one release later. S (seasonally
+  adjusted) and IS (unadjusted) are not used. Trend figures are revised each
+  month (August 2026: published 4,5, now 4,6); under D6 the latest value counts.
+- `release_window` (monthly series): month M is published between these days of
+  month M+1. Without it, the KPI default applies: days 1 to 15 (B11).
 
 ```json series
 {
@@ -72,6 +91,22 @@ Confirmed against the live APIs on 2026-11-14.
     "history": [{"until": "2025-12", "table": "05327",
                  "selection": {"Konsumgrp": "JAE_TOTAL", "ContentsCode": "Tolvmanedersendring"}}],
     "confirmed": "2026-11-14"
+  },
+  "aku_trend": {
+    "indicator": "unemployment", "measure": "level", "unit": "percent",
+    "concept": "Unemployment rate (AKU), trend, % of labour force",
+    "source": "ssb", "frequency": "M", "table": "13760",
+    "selection": {"Kjonn": "0", "Alder": "15-74", "Justering": "T", "ContentsCode": "ArbledProsArbstyrk"},
+    "release_window": [20, 27],
+    "confirmed": "2026-11-23"
+  },
+  "aku_3mma": {
+    "indicator": "unemployment", "measure": "level", "unit": "percent",
+    "concept": "Unemployment rate (AKU), seasonally adjusted 3-month moving average (middle month), % of labour force",
+    "source": "ssb", "frequency": "M", "table": "13760",
+    "selection": {"Kjonn": "0", "Alder": "15-74", "Justering": "3MGG", "ContentsCode": "ArbledProsArbstyrk"},
+    "release_window": [20, 27],
+    "confirmed": "2026-11-23"
   },
   "policy_rate": {
     "indicator": "policy_rate", "measure": "level", "unit": "percent",

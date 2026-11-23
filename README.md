@@ -20,13 +20,13 @@ $ norfigures check memo.txt --published 2026-11-15
 #  Claim                                   Stated  Official  Verdict                                 Source
 -  --------------------------------------  ------  --------  --------------------------------------  ----------------------------------------------------
 1  Inflasjonen var 3,1 % i oktober.        3.1     3.6       MISMATCHED                              SSB, kpi_12m, 2026-10, table 14706
-2  holdt styringsrenten på 4,0 %           4.0     4.5       MISMATCHED                              Norges Bank, policy_rate, 2026-11-12, IR/B.KPRA.SD.R
+2  holdt styringsrenten på 4,0 %           4.0     4.5       MISMATCHED                              Norges Bank, policy_rate, 2026-11-13, IR/B.KPRA.SD.R
 3  venter at kronen svekkes til 12,00 mo…  12.00   n/a       CANNOT VERIFY (forecast not checkable)  none
 
 Notes:
 1. [ambiguous_measure] Headline CPI, 12-month change, 2026-10: 3.6 (does not match). CPI-ATE (core),
    12-month change, 2026-10: 2.7 (does not match).
-2. [period_inferred] no observation on 2026-11-15; using the latest one before it, 2026-11-12.
+2. [period_inferred] no observation on 2026-11-15; using the latest one before it, 2026-11-13.
 3. [forecast_not_checkable] Forecast or expectation; published data cannot confirm it.
 
 Claims found: 3 | matched: 0 | mismatched: 2 | could not verify: 1
@@ -143,7 +143,7 @@ Claude Code wrote the code. I wrote the spec and made the calls; each one is in
   about $0.0006 per check on average over the test set.
 - **Two layers** (D18). The core is standard library only and runs offline;
   the AI step is an optional install.
-- **What was cut.** Unemployment, GDP and wages wait until after the MVP (D16).
+- **What was cut.** GDP and wages wait; unemployment (AKU) was added after the MVP (D16, B41 to B43).
   The planned mapper agent became plain code (B18).
 
 ## Guardrails
@@ -159,8 +159,11 @@ Claude Code wrote the code. I wrote the spec and made the calls; each one is in
 
 ## Known limits
 
-- Four series only: KPI (12-month and monthly change), KPI-JAE (12-month),
-  Norges Bank's policy rate and EUR/NOK. Unemployment (AKU) comes next.
+- Five indicators: KPI (12-month and monthly change), KPI-JAE (12-month),
+  Norges Bank's policy rate, EUR/NOK and AKU unemployment (trend and 3-month
+  average). NAV's registered unemployment is not covered yet: an unemployment
+  figure that names no source and matches neither AKU series is reported as
+  "could not verify" (B43).
 - Compares against the latest published value, not the value as first published.
   For 2025 and earlier, that is the rate SSB published before its 2026 rebase.
 - Numeric claims only. "Rekordsvak krone" is reported, not checked.

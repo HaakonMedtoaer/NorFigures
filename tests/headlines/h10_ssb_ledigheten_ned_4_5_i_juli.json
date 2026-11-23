@@ -1,0 +1,28 @@
+{
+  "outlet": "SSB (Statistisk sentralbyrå)",
+  "url": "https://www.ssb.no/arbeid-og-lonn/sysselsetting/statistikk/arbeidskraftundersokelsen/artikler",
+  "published": "2026-08-25",
+  "published_note": "Title and date from SSB's AKU article list (25. august 2026); the article itself was not opened",
+  "text": "Ledigheten ned på 4,5 prosent i juli",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Ledigheten ned på 4,5 prosent i juli",
+      "status": "checkable",
+      "indicator": "unemployment",
+      "measure": "level",
+      "period": "2026-07",
+      "unit": "percent",
+      "stated_value": "4.5",
+      "hedged": false,
+      "labels": []
+    }
+  ],
+  "expected": {
+    "exit_code": 0,
+    "verdicts": [
+      "matched"
+    ]
+  },
+  "why": "Trend for July 2026 is 4.5 (matches); the seasonally adjusted 3-month average is 4.4. Both are shown (D4/D5, B41). 'ned på' gives the new level, not a change."
+}

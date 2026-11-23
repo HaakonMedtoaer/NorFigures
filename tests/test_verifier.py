@@ -47,6 +47,13 @@ class PeriodsTest(unittest.TestCase):
         self.assertEqual(periods.infer_monthly(date(2026, 11, 5)), ["2026-10", "2026-09"])
         self.assertEqual(periods.infer_monthly(date(2026, 1, 3)), ["2025-12", "2025-11"])
 
+    def test_infer_monthly_with_a_release_window(self):
+        # AKU for month M comes out on day 21 to 26 of M+1; the ledger window is 20 to 27 (B42).
+        w = (20, 27)
+        self.assertEqual(periods.infer_monthly(date(2026, 10, 10), w), ["2026-08"])
+        self.assertEqual(periods.infer_monthly(date(2026, 10, 22), w), ["2026-09", "2026-08"])
+        self.assertEqual(periods.infer_monthly(date(2026, 10, 30), w), ["2026-09"])
+
     def test_month_arithmetic(self):
         self.assertEqual(periods.add_months("2026-01", -1), "2025-12")
         self.assertEqual(periods.month_bounds("2024-02")[1], date(2024, 2, 29))
@@ -99,6 +106,59 @@ class GuardrailTest(unittest.TestCase):
         self.assertEqual(summarize([ClaimResult(c, MATCHED)])["claims_found"], 1)
         with self.assertRaises(AccountingError):
             summarize([ClaimResult(c, "something_else")])
+
+
+def _aku(text, value, period="2026-08", labels=(), measure="level", unit="percent"):
+    return {"id": "c1", "source_text": text, "status": "checkable", "indicator": "unemployment",
+            "measure": measure, "period": period, "unit": unit, "stated_value": value,
+            "labels": list(labels), "mappings": [{"series_id": "aku_trend"}, {"series_id": "aku_3mma"}]}
+
+
+class UnemploymentTest(unittest.TestCase):
+    """AKU (D16, B41 to B43), against recorded SSB table 13760 responses."""
+
+    def setUp(self):
+        self.series = load()
+
+    def verify(self, claim, published=date(2026, 10, 22)):
+        run = Run(client(), self.series)
+        return verify_claim(_claims(claim)[0], run, published, TODAY)
+
+    def test_both_aku_readings_shown(self):
+        res = self.verify(_aku("Ledigheten var 4,5 prosent i juli ifølge AKU", "4.5", "2026-07"))
+        self.assertEqual(res.verdict, MATCHED)
+        self.assertEqual([(r.series_id, str(r.official_value)) for r in res.readings],
+                         [("aku_trend", "4.5"), ("aku_3mma", "4.4")])
+        self.assertIn("ambiguous_measure", res.labels)
+
+    def test_wrong_figure_with_aku_named_is_a_mismatch(self):
+        res = self.verify(_aku("AKU-ledigheten var 4,9 prosent i august", "4.9"))
+        self.assertEqual(res.verdict, MISMATCHED)
+
+    def test_wrong_figure_without_a_source_may_be_nav(self):
+        res = self.verify(_aku("Ledigheten var 2,1 prosent i august", "2.1",
+                               labels=["unemployment_source_unnamed"]))
+        self.assertEqual(res.verdict, CANNOT_VERIFY)
+        self.assertTrue(any("NAV" in n for n in res.notes))
+
+    def test_latest_month_waits_for_the_three_month_average(self):
+        # The 3-month average for September needs October; until then a wrong
+        # September figure cannot be called a mismatch (incomplete data).
+        res = self.verify(_aku("AKU-ledigheten var 4,9 prosent i september", "4.9", "2026-09"))
+        self.assertEqual(res.verdict, CANNOT_VERIFY)
+        self.assertIn("incomplete_data", res.labels)
+
+    def test_inferred_period_inside_the_release_window(self):
+        res = self.verify(_aku("AKU-ledigheten er 4,6 prosent", "4.6", period=None))
+        self.assertEqual(res.verdict, MATCHED)
+        self.assertIn("period_inferred", res.labels)
+        self.assertEqual({r.period for r in res.readings}, {"2026-09", "2026-08"})
+
+    def test_change_in_points(self):
+        res = self.verify(_aku("AKU-ledigheten økte med 0,1 prosentpoeng fra juli til august", "0.1",
+                               measure="change", unit="percentage_points"))
+        self.assertEqual(res.verdict, MATCHED)
+        self.assertEqual(str(res.readings[0].official_value), "0.1")
 
 
 if __name__ == "__main__":

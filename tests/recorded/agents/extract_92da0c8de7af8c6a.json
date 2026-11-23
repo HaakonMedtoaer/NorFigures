@@ -1,0 +1,11 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt_sha": "a49abd0800cf2e8d",
+ "published": "2026-11-15",
+ "text": "KPI steg 3,6 prosent siste tolv måneder til september.",
+ "response_text": "{\"claims\":[{\"source_text\":\"KPI steg 3,6 prosent siste tolv måneder til september.\",\"status\":\"checkable\",\"indicator\":\"kpi\",\"other_indicator\":null,\"measure\":\"12_month_change\",\"period\":\"2026-09\",\"unit\":\"percent\",\"stated_value\":\"3,6\",\"hedged\":false}]}",
+ "stop_reason": "end_turn",
+ "input_tokens": 7835,
+ "output_tokens": 108,
+ "recorded_at": "2026-11-23T17:27:57+00:00"
+}

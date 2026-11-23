@@ -5,13 +5,13 @@ from pathlib import Path
 from norfigures import net
 from norfigures.ledger import LedgerError, load
 
-FIVE = {"kpi_12m", "kpi_monthly", "kpi_jae_12m", "policy_rate", "eurnok"}
+SERIES = {"kpi_12m", "kpi_monthly", "kpi_jae_12m", "aku_trend", "aku_3mma", "policy_rate", "eurnok"}
 
 
 class LedgerTest(unittest.TestCase):
-    def test_the_five_mvp_series_are_present_and_confirmed(self):
+    def test_the_ledger_series_are_present_and_confirmed(self):
         series = load()
-        self.assertEqual(set(series), FIVE)
+        self.assertEqual(set(series), SERIES)
         for s in series.values():
             with self.subTest(series=s.id):
                 self.assertRegex(s.confirmed, r"^\d{4}-\d{2}-\d{2}$")

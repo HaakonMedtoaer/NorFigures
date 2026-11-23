@@ -11,7 +11,7 @@ class CliTest(unittest.TestCase):
         with redirect_stdout(out):
             code = main(["latest", "--offline"])
         self.assertEqual(code, 0)
-        for sid in ("kpi_12m", "kpi_monthly", "kpi_jae_12m", "policy_rate", "eurnok"):
+        for sid in ("kpi_12m", "kpi_monthly", "kpi_jae_12m", "aku_trend", "aku_3mma", "policy_rate", "eurnok"):
             self.assertIn(sid, out.getvalue())
         self.assertIn("offline", out.getvalue())
 

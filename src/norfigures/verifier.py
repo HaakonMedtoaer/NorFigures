@@ -219,7 +219,7 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
             continue
         if candidates is None:
             if s.frequency == "M":
-                plist = periods.infer_monthly(published)
+                plist = periods.infer_monthly(published, s.release_window)
             else:
                 plist = [published.isoformat()]
         else:
@@ -247,6 +247,12 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
     res.period = res.chosen.period if res.chosen else None
 
     _decide(res, run)
+    if res.verdict == MISMATCHED and "unemployment_source_unnamed" in claim.labels:
+        # "Ledigheten var 2,1 prosent" may be NAV's registered rate, which is not
+        # covered yet; without an AKU word, a mismatch would be a guess (D16, B43).
+        res.verdict = CANNOT_VERIFY
+        res.notes.append("Does not match AKU, and the text does not say AKU: it may be NAV's "
+                         "registered unemployment, which is not covered yet.")
     return res
 
 

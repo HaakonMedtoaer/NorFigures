@@ -90,6 +90,16 @@ should confirm or overturn them.
 | B39 | The README animation is an SVG animated with CSS only (no script, no GIF), made by `python -m norfigures.animation` from `docs/example-run.jsonl`, which that command records by replaying the spec's worked example offline. Claims are shown one after another; the pipeline maps all claims before verifying any, so only the order on screen and the timing are staged. Visibility, not opacity, switches captions (opacity animations stalled in headless Chrome). Tests fail if either file is stale, and check that every number in a caption is in the log. | A GIF needs an image library (not stdlib) and goes blurry; a CSS-animated SVG is small, sharp, works as a GitHub image and in dark mode. |
 | B40 | Run-log events carry what the flow map shows: `map` has the claim text, number, period and the phrases matched; `fetch` has the source and table or key, and logs failures (`guardrail: host_not_allowed`); `compare` has the stated value, the chosen series and the observation used. The provenance check is its own stage, and a failed run ends with `report: failed`. | The flow map only reads the log (spec section 14), so the log must say what each step took in and gave out. |
 
+## Weekend 6 build choices (for review)
+
+| # | Choice | Why |
+|---|---|---|
+| B41 | Unemployment (AKU, D16) is checked against two series from SSB table 13760: the trend (canonical, SSB's headline figure) and the seasonally adjusted 3-month moving average, named after its middle month. Matched if either fits (D4). "Trend" words pick the trend only; "sesongjustert" or "glidende gjennomsnitt" pick the average only. | SSB's key-figure table shows the trend, and the table's note recommends the trend and the 3-month average. Texts that quote either are correct. |
+| B42 | A monthly series can carry a `release_window` in the ledger. AKU uses days 20 to 27 of month M+1; without one, KPI's days 1 to 15 apply (B11). | AKU for month M is published 3 to 4 weeks after the month ends (observed 21 to 26 in 2026), so KPI's window would infer the wrong month. |
+| B43 | "Arbeidsledigheten" or "ledigheten" with no AKU word may be NAV's registered rate. Such a claim is labelled `unemployment_source_unnamed`, and a value that matches neither AKU series is `cannot_verify`, not `mismatched`. With an AKU word, it is a mismatch. NAV's registered unemployment and a group's rate ("ledigheten blant unge", "ungdomsledigheten") are out of scope. | NAV's rate is lower (about 2 %); flagging a correct NAV figure as wrong would be a false alarm. Fail loudly, but do not guess. |
+| B44 | A KPI or KPI-JAE claim the extractor gives as a `change` in percent (not percentage points) is a price change, so the phrase tables reset its measure and the mapping rules (D12) decide it. Only a points word makes a change in the rate (B27). | After the extractor contract gained unemployment, Haiku gave "Prisene steg 0,3 prosent i oktober" as `change`, which became a mapping mismatch on a correct figure. |
+| B45 | `latest` looks back three periods when the newest one has no value. | SSB lists September 2026 for the AKU 3-month average as missing (`..`) until October's data is in, so `norfigures latest` failed on it. |
+
 ## Pending
 
 All spec section 7 edge cases are decided (D4 to D16).

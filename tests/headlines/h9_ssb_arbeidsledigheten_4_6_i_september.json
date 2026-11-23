@@ -1,0 +1,28 @@
+{
+  "outlet": "SSB (Statistisk sentralbyrå)",
+  "url": "https://www.ssb.no/arbeid-og-lonn/sysselsetting/statistikk/arbeidskraftundersokelsen/artikler/arbeidsledigheten-pa-4-6-prosent-i-september",
+  "published": "2026-10-22",
+  "published_note": "Article date on ssb.no (Publisert: 22. oktober 2026)",
+  "text": "Arbeidsledigheten på 4,6 prosent i september",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "Arbeidsledigheten på 4,6 prosent i september",
+      "status": "checkable",
+      "indicator": "unemployment",
+      "measure": "level",
+      "period": "2026-09",
+      "unit": "percent",
+      "stated_value": "4.6",
+      "hedged": false,
+      "labels": []
+    }
+  ],
+  "expected": {
+    "exit_code": 0,
+    "verdicts": [
+      "matched"
+    ]
+  },
+  "why": "SSB's own AKU headline: the trend figure for September 2026 is 4.6. The 3-month average for September needs October's data, so it is not out yet; the trend reading decides (B41)."
+}

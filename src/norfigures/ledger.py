@@ -50,6 +50,9 @@ class Series:
     # Older periods read from other tables: [{"until": "YYYY-MM", "table", "selection"}],
     # oldest last-period first. Periods after the last `until` use table/selection (B24).
     history: tuple = ()
+    # Monthly series: month M is published between these days of month M+1 (inclusive).
+    # Used to infer a missing period (D14): inside the window both months are checked.
+    release_window: tuple | None = None
 
     def segments(self, start: str, end: str) -> list[tuple[str, str, str, dict]]:
         """Split a YYYY-MM range into (start, end, table, selection) per source table."""
@@ -105,7 +108,14 @@ def load(path: Path | None = None) -> dict[str, Series]:
                 raise LedgerError(f"series {sid}: each history entry needs until (YYYY-MM), table, selection")
         if [h["until"] for h in hist] != sorted(h["until"] for h in hist):
             raise LedgerError(f"series {sid}: history must be in order of 'until'")
-        spec = dict(spec, history=tuple(hist))
+        rw = spec.get("release_window")
+        if rw is not None:
+            if not (isinstance(rw, list) and len(rw) == 2 and all(isinstance(d, int) for d in rw)
+                    and 1 <= rw[0] <= rw[1] <= 31 and spec.get("frequency") == "M"):
+                raise LedgerError(f"series {sid}: release_window must be [first_day, last_day] "
+                                  "on a monthly series")
+            rw = tuple(rw)
+        spec = dict(spec, history=tuple(hist), release_window=rw)
         try:
             out[sid] = Series(id=sid, **spec)
         except TypeError as e:

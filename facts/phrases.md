@@ -32,6 +32,11 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
 | `indicators.prices_generic` | headline KPI; monthly vs 12-month is ambiguous unless a measure phrase is found (D12) |
 | `out_of_scope` | claim is `out_of_scope`, named by its key (D16) |
 | `out_of_scope.sub_index` | food, electricity, rent, fuel: part of KPI, not KPI itself, so out of scope; **only when** the claim names no overall-inflation word ("prisveksten falt, trukket ned av strømprisene" is still KPI) (B25) |
+| `indicators.unemployment` | unemployment rate, AKU (D16): checked against SSB's trend and the seasonally adjusted 3-month average, trend first (D4, B41). With no AKU word, a value that matches neither is `cannot_verify`, since it may be NAV's registered rate (B43) |
+| `indicators.unemployment_aku` | names the AKU source, so a value that matches neither reading is `mismatched` (B43) |
+| `indicators.unemployment_trend` / `unemployment_3mma` | picks that one AKU series instead of both (B41) |
+| `out_of_scope.registered_unemployment` | NAV's registered unemployment: out of scope until NAV is added (D16) |
+| `out_of_scope_regex.unemployment_group` | unemployment for a group ("ledigheten blant unge", "ungdomsledigheten"), not the total (B43) |
 | `record_words` | with no number: `no_figure` (D13) |
 
 ```json phrases
@@ -109,10 +114,27 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
     "eurnok": [
       "euro", "euroen", "eurokurs", "eurokursen", "eur/nok", "eurnok", "kronekurs", "kronekursen",
       "kronen", "krone"
+    ],
+    "unemployment": [
+      "arbeidsledighet", "arbeidsledigheten", "ledighet", "ledigheten", "ledighetsraten",
+      "ledighetsprosenten", "ledighetsnivået", "arbeidsledige", "unemployment", "unemployment rate"
+    ],
+    "unemployment_aku": [
+      "aku", "aku-ledighet", "aku-ledigheten", "aku-tallene", "arbeidskraftundersøkelsen",
+      "arbeidskraftundersøkelse", "labour force survey"
+    ],
+    "unemployment_trend": ["trend", "trenden", "trendtall", "trendtallet", "trendtallene"],
+    "unemployment_3mma": [
+      "sesongjustert", "sesongjusterte", "glidende gjennomsnitt", "tremåneders", "tre måneders",
+      "tremånedersperioden", "seasonally adjusted", "three-month average", "3-month average"
     ]
   },
   "out_of_scope": {
-    "unemployment": ["arbeidsledighet", "arbeidsledigheten", "ledighet", "ledigheten", "ledighetsraten", "unemployment"],
+    "registered_unemployment": [
+      "registrert ledighet", "registrerte ledigheten", "registrert arbeidsledighet",
+      "registrerte arbeidsledigheten", "registrert arbeidsledige", "registrerte arbeidsledige",
+      "helt ledige", "nav", "registered unemployment"
+    ],
     "gdp": ["bnp", "bruttonasjonalprodukt", "bruttonasjonalproduktet", "gdp"],
     "wage_growth": ["lønnsvekst", "lønnsveksten", "wage growth"],
     "house_prices": ["boligpris", "boligpriser", "boligprisene", "boligprisveksten", "house prices"],
@@ -132,6 +154,10 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
     ],
     "other_rate": [
       "\\b(?!styrings|folio)\\w{3,}renten?\\b"
+    ],
+    "unemployment_group": [
+      "\\b(arbeids)?ledighet(en)? (blant|for) ",
+      "\\b(ungdoms|langtids|innvandrer)\\w*ledighet(en)?\\b"
     ]
   },
   "record_words": [

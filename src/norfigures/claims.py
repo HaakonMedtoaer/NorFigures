@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 
 STATUSES = ("checkable", "forecast", "no_figure", "ambiguous", "out_of_scope")
-INDICATORS = ("kpi", "kpi_jae", "policy_rate", "eurnok")
+INDICATORS = ("kpi", "kpi_jae", "policy_rate", "eurnok", "unemployment")
 MEASURES = ("12_month_change", "monthly_change", "level", "change")
 UNITS = ("percent", "percentage_points", "nok_per_eur")
 

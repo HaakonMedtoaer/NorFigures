@@ -31,6 +31,17 @@ def map_claim(raw: dict, series: dict[str, Series]) -> tuple[list[str], str | No
             return [], f"{ind} is a level series; '{measure}' cannot be checked on it."
         return ([sid], None) if sid else ([], f"No ledger series for {ind}.")
 
+    if ind == "unemployment":
+        # AKU (D16): trend is SSB's headline; the 3-month average is the other series
+        # SSB recommends. Both are checked unless the words pick one (D4, B41).
+        if measure not in ("level", "change", None):
+            return [], f"unemployment is a rate; '{measure}' cannot be checked on it."
+        want = {"trend": ["aku_trend"], "3mma": ["aku_3mma"]}.get(h.unemployment_series,
+                                                                 ["aku_trend", "aku_3mma"])
+        ids = [sid for sid in want if sid in series]
+        missing = [sid for sid in want if sid not in series]
+        return ids, ("Not in the ledger yet: " + ", ".join(missing) + ".") if missing else None
+
     if ind not in ("kpi", "kpi_jae"):
         return [], f"Indicator '{ind}' has no series in the ledger."
 

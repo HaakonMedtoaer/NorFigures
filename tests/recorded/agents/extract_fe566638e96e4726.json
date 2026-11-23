@@ -1,0 +1,11 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt_sha": "a49abd0800cf2e8d",
+ "published": "2026-11-15",
+ "text": "Inflasjonen var 3,1 % i oktober. Norges Bank holdt styringsrenten på 4,0 %, og analytikerne venter at kronen svekkes til 12,00 mot euro neste år.",
+ "response_text": "{\"claims\":[{\"source_text\":\"Inflasjonen var 3,1 % i oktober\",\"status\":\"checkable\",\"indicator\":\"kpi\",\"other_indicator\":null,\"measure\":\"level\",\"period\":\"2026-10\",\"unit\":\"percent\",\"stated_value\":\"3,1\",\"hedged\":false},{\"source_text\":\"Norges Bank holdt styringsrenten på 4,0 %\",\"status\":\"checkable\",\"indicator\":\"policy_rate\",\"other_indicator\":null,\"measure\":\"level\",\"period\":null,\"unit\":\"percent\",\"stated_value\":\"4,0\",\"hedged\":false},{\"source_text\":\"analytikerne venter at kronen svekkes til 12,00 mot euro neste år\",\"status\":\"forecast\",\"indicator\":\"eurnok\",\"other_indicator\":null,\"measure\":\"level\",\"period\":\"2027\",\"unit\":\"nok_per_eur\",\"stated_value\":\"12,00\",\"hedged\":false}]}",
+ "stop_reason": "end_turn",
+ "input_tokens": 7883,
+ "output_tokens": 856,
+ "recorded_at": "2026-11-23T17:28:17+00:00"
+}

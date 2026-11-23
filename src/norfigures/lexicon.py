@@ -68,7 +68,10 @@ class Hints:
     kpi_jae: bool = False
     inflation_generic: bool = False
     prices_generic: bool = False
-    out_of_scope: str | None = None       # key, e.g. "unemployment"
+    unemployment: bool = False            # an unemployment word (D16)
+    unemployment_aku: bool = False        # names the AKU source (B43)
+    unemployment_series: str | None = None  # "trend" | "3mma" | None (both) (B41)
+    out_of_scope: str | None = None       # key, e.g. "registered_unemployment"
     out_of_scope_specific: bool = False   # found by a pattern like "prisene på X" (B28)
     points: str | None = None             # "prosentpoeng" etc. (B27)
     rate_decision: str | None = None      # "settes ned" etc. (B29)
@@ -139,6 +142,11 @@ def hints(text: str, data: dict | None = None, number: str | None = None) -> Hin
     h.kpi_explicit = (bool(found(text, ind["kpi_explicit"])) or h.kpi_growth_noun) and not h.kpi_jae
     h.inflation_generic = bool(found(text, ind["inflation_generic"]))
     h.prices_generic = bool(found(text, ind["prices_generic"]))
+    h.unemployment = bool(found(text, ind.get("unemployment", [])))
+    h.unemployment_aku = bool(found(text, ind.get("unemployment_aku", [])))
+    trend = bool(found(text, ind.get("unemployment_trend", [])))
+    mma = bool(found(text, ind.get("unemployment_3mma", [])))
+    h.unemployment_series = "trend" if trend and not mma else ("3mma" if mma and not trend else None)
     for key, words in data["out_of_scope"].items():
         if found(text, words):
             h.out_of_scope = key
@@ -216,18 +224,29 @@ def review(raw: dict, data: dict | None = None) -> dict:
         override("hedged", True, f"hedge word '{h.hedges[0]}'")
 
     if c.get("status") == "checkable":
+        if h.unemployment and not general and c.get("indicator") not in ("policy_rate", "eurnok"):
+            override("indicator", "unemployment", "an unemployment word")
         if h.kpi_jae and c.get("indicator") in ("kpi", "kpi_jae", None):
             override("indicator", "kpi_jae", "a core-inflation phrase")
         if c.get("indicator") in ("policy_rate", "eurnok") and h.change_verb:
             override("measure", "change", f"change verb '{h.change_verb}'")
-        elif c.get("indicator") in ("kpi", "kpi_jae") and h.points:
+        elif c.get("indicator") in ("kpi", "kpi_jae", "unemployment") and h.points:
             # "Tolvmånedersveksten steg 1,3 prosentpoeng": a change in the rate (B27)
             override("measure", "change", f"'{h.points}'")
             override("unit", "percentage_points", f"'{h.points}'")
         elif c.get("indicator") in ("kpi", "kpi_jae") and h.measure:
             override("measure", h.measure, f"'{h.measure_phrase}'")
+        elif c.get("indicator") in ("kpi", "kpi_jae") and c.get("measure") == "change" \
+                and c.get("unit") != "percentage_points":
+            # "Prisene steg 0,3 prosent": prices changed, not the rate. With no points
+            # word, it is a price change; the mapping rules pick the measure (D12, B44).
+            override("measure", "12_month_change", "a price change in percent, not points")
         if c.get("indicator") == "policy_rate" and h.rate_decision and "rate_decision" not in labels:
             labels.append("rate_decision")
+        if c.get("indicator") == "unemployment" and not h.unemployment_aku \
+                and "unemployment_source_unnamed" not in labels:
+            # Could be NAV's registered rate, which is not covered yet (D16, B43).
+            labels.append("unemployment_source_unnamed")
 
     c["labels"] = labels
     if notes:
