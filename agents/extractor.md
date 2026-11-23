@@ -50,6 +50,11 @@ Learned from SSB release articles and Norges Bank press releases (B26 to B31, B3
 - **One claim per figure.** "steg fra 3,4 prosent i september til 3,6 prosent i
   oktober" is two claims, each with its own period. For a rate decision, "ned fra
   4,5 til 4,25 prosent" is one claim: the new level, 4,25.
+- **A repeated figure is a claim again.** When a title, a summary or a later
+  sentence states a figure that an earlier sentence already gave ("KPI steg 0,6
+  prosent ... og var i januar 3,6 prosent høyere" after the same figures above;
+  a press-release title that restates the decision), list it again with its own
+  `source_text`. Each place a figure is written is checked on its own.
 - **Percentage points about an inflation rate** ("Tolvmånedersveksten steg 1,3
   prosentpoeng", "en nedgang på 0,3 prosentpoeng") are `measure: change`,
   `unit: percentage_points`. Copy the number without a sign; code reads the

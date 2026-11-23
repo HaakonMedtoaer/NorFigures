@@ -1,0 +1,11 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt_sha": "d963b2b0a17e4798",
+ "published": "2025-03-10",
+ "text": "Prisveksten steg til 3,6 prosent i februar",
+ "response_text": "{\"claims\":[{\"source_text\":\"Prisveksten steg til 3,6 prosent i februar\",\"status\":\"checkable\",\"indicator\":\"kpi\",\"other_indicator\":null,\"measure\":\"12_month_change\",\"period\":\"2025-02\",\"unit\":\"percent\",\"stated_value\":\"3,6\",\"hedged\":false}]}",
+ "stop_reason": "end_turn",
+ "input_tokens": 8238,
+ "output_tokens": 467,
+ "recorded_at": "2026-11-23T18:51:36+00:00"
+}

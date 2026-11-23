@@ -1,0 +1,11 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt_sha": "d963b2b0a17e4798",
+ "published": "2026-11-15",
+ "text": "BNP for Fastlands-Norge økte med 0,4 prosent i tredje kvartal.",
+ "response_text": "{\"claims\":[{\"source_text\":\"BNP for Fastlands-Norge økte med 0,4 prosent i tredje kvartal.\",\"status\":\"out_of_scope\",\"indicator\":\"other\",\"other_indicator\":\"gdp\",\"measure\":\"change\",\"period\":null,\"unit\":\"percent\",\"stated_value\":\"0,4\",\"hedged\":false}]}",
+ "stop_reason": "end_turn",
+ "input_tokens": 8251,
+ "output_tokens": 113,
+ "recorded_at": "2026-11-23T18:51:19+00:00"
+}
