@@ -2,7 +2,8 @@
 
     norfigures latest [--offline]
     norfigures check FILE|-          [--published YYYY-MM-DD] [--format table|json]
-                                     [--offline] [--log PATH]
+                                     [--offline] [--log PATH] [--flow]
+    norfigures flow LOG              (replay a run log in the flow map)
     norfigures check --claims FILE|- (hand-written claims; no model involved)
     norfigures record-agents         (record extractor outputs for tests/cases)
 
@@ -15,6 +16,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from datetime import date
 from pathlib import Path
 
@@ -88,7 +90,60 @@ def cmd_check(args) -> int:
 
     run_id = new_run_id()
     log_path = Path(args.log) if args.log else REPO_ROOT / "runs" / f"{run_id}.jsonl"
+    if args.flow and args.log == "none":
+        raise InputError("--flow reads the run log; it cannot be used with --log none")
     log = RunLog(run_id, None if args.log == "none" else log_path)
+    flow = _start_flow(log_path, live=True) if args.flow else None
+    try:
+        return _check(args, log, source, text, published)
+    except Exception as e:
+        # A failed run still ends the log, so the flow map shows where it stopped.
+        log.emit("report", "failed", error=str(e), exit_code=EXIT_BAD_INPUT)
+        raise
+    finally:
+        if flow is not None:
+            _finish_flow(flow)
+
+
+def _start_flow(log_path: Path, live: bool):
+    import threading
+    import webbrowser
+    from .flowserver import FlowServer
+    server = FlowServer(log_path).start()
+    url = server.url if live else server.url.replace("live=1&", "")
+    print(f"Flow map: {url}", file=sys.stderr)
+    # Some browsers (a BROWSER command, a text browser) block until closed; the run must not wait.
+    threading.Thread(target=webbrowser.open, args=(url,), daemon=True).start()
+    return server
+
+
+def _finish_flow(server, timeout: float = 30.0) -> None:
+    """Keep serving until the page has read the finished log; the page then plays
+    the rest from memory."""
+    if not server.wait_until_read(timeout):
+        print("Flow map: the page did not load the finished log; open the run log "
+              "in docs/flowmap.html to replay it.", file=sys.stderr)
+    server.stop()
+
+
+def cmd_flow(args) -> int:
+    """Replay a saved run log in the flow map, served on 127.0.0.1 until Ctrl+C."""
+    path = Path(args.log)
+    if not path.is_file():
+        raise InputError(f"cannot read run log {path}")
+    server = _start_flow(path, live=False)
+    print("Serving the flow map; press Ctrl+C to stop.", file=sys.stderr)
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.stop()
+    return EXIT_OK
+
+
+def _check(args, log: RunLog, source: str, text: str, published) -> int:
     log.emit("load", "ok", source=source, published=args.published, offline=args.offline,
              kind="claims" if args.claims else "text")
 
@@ -204,7 +259,13 @@ def build_parser() -> argparse.ArgumentParser:
     pc.add_argument("--offline", action="store_true", help="replay recorded API responses")
     pc.add_argument("--log", metavar="PATH",
                     help="event log path (default runs/<run_id>.jsonl; 'none' to disable)")
+    pc.add_argument("--flow", action="store_true",
+                    help="open the flow map and follow this run live (local page, 127.0.0.1)")
     pc.set_defaults(func=cmd_check)
+
+    pf = sub.add_parser("flow", help="replay a run log in the flow map (local page, 127.0.0.1)")
+    pf.add_argument("log", metavar="LOG", help="a run log, e.g. runs/<run_id>.jsonl or docs/example-run.jsonl")
+    pf.set_defaults(func=cmd_flow)
 
     pr = sub.add_parser("record-agents",
                         help="run the extractor live on tests/cases, tests/headlines and tests/longtexts")

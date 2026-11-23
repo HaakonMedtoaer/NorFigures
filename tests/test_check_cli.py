@@ -103,6 +103,33 @@ class OutputTest(unittest.TestCase):
         self.assertEqual([e["claim_id"] for e in compares], ["c1", "c2", "c3"])
         for key in ("run_id", "claim_id", "stage", "status", "detail", "ts"):
             self.assertIn(key, events[0])
+        # What the flow map and README animation show (spec section 14).
+        self.assertEqual(compares[0]["detail"]["stated"], "3.1")
+        self.assertEqual(compares[0]["detail"]["readings"][0]["official"], "3.6")
+        fetches = {e["detail"]["series_id"]: e["detail"] for e in events if e["stage"] == "fetch"}
+        self.assertEqual(fetches["kpi_12m"]["ref"], "table 14706")
+        self.assertEqual(fetches["policy_rate"]["ref"], "IR/B.KPRA.SD.R")
+        prov = [e for e in events if e["stage"] == "provenance"]
+        self.assertEqual([e["status"] for e in prov], ["ok"])
+        self.assertEqual(stages[-1], "report")
+
+    def test_blocked_host_is_logged_as_a_guardrail(self):
+        from norfigures.events import RunLog
+        from norfigures.ledger import load
+        from norfigures.net import HostNotAllowed
+        from norfigures.verifier import Run
+
+        class Blocked:
+            def get(self, *a, **k):
+                raise HostNotAllowed("host 'example.com' is not on the allowlist")
+            get_json = get_text = get
+
+        log = RunLog()
+        series = load()
+        with self.assertRaises(HostNotAllowed):
+            Run(Blocked(), series, log).fetch(series["policy_rate"], "2026-11-01", "2026-11-15", "c1")
+        self.assertEqual(log.events[-1]["status"], "failed")
+        self.assertEqual(log.events[-1]["detail"]["guardrail"], "host_not_allowed")
 
 
 if __name__ == "__main__":

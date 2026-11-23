@@ -1,7 +1,8 @@
 """Run event log: one JSON line per pipeline step.
 
 Fields: run_id, claim_id, stage, status, detail, ts. The flow map (spec
-section 14) will read this file; it also serves debugging and tests.
+section 14, docs/flowmap.html) and the README animation read this file, and
+only this file (B40); it also serves debugging and tests.
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-STAGES = ("load", "validate", "extract", "map", "fetch", "compare", "report")
+STAGES = ("load", "validate", "extract", "map", "fetch", "compare", "provenance", "report")
 
 
 def new_run_id() -> str:

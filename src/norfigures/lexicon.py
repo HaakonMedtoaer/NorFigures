@@ -172,6 +172,17 @@ def hints(text: str, data: dict | None = None, number: str | None = None) -> Hin
     return h
 
 
+def matched_phrases(text: str, number: str | None = None, data: dict | None = None) -> list[str]:
+    """The indicator words and the measure phrase the tables found, for the run log
+    and the flow map ("inflasjonen", "fra september til oktober"). Display only."""
+    data = data or load()
+    words = [w for group in data["indicators"].values() for w in found(text, group)]
+    h = hints(text, data, number=number)
+    if h.measure_phrase:
+        words.append(h.measure_phrase)
+    return list(dict.fromkeys(words))
+
+
 def review(raw: dict, data: dict | None = None) -> dict:
     """Return a corrected copy of one extracted claim dict, with overrides noted."""
     c = dict(raw)

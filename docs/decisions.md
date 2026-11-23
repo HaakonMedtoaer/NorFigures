@@ -82,6 +82,14 @@ should confirm or overturn them.
 | B37 | The extractor contract says to copy a long index name in full, never as its short form ("KPI justert for avgiftsendringer og uten energivarer (KPI-JAE) steg ..." must not become "KPI-JAE steg ..."). The verbatim check stays as strict as it was. | Twice in a row, Haiku shortened the name in SSB's January 2026 article, so the whole text failed extraction. In October 2026 it copied the same kind of name in full. A looser check would let rewritten text through. |
 | B22 | Phrase-table rule for change verbs: the verb, then "med"/"by" later in the claim ("økte renten med 0,25"). KPI growth nouns ("KPI-veksten") mean 12-month change by default. | Real wording puts words between the verb and "med"; "KPI-veksten" is read like "inflasjonen". |
 
+## Weekend 5 build choices (for review)
+
+| # | Choice | Why |
+|---|---|---|
+| B38 | Live flow map by polling, not server-sent events (spec section 14's open item). `norfigures check --flow` serves `docs/flowmap.html` and the run log from a stdlib server on 127.0.0.1 (random port, GET only, two paths, no outbound requests) in `flowserver.py`; the page polls the log every 0.4 s. `norfigures flow LOG` replays a saved log the same way. The data allowlist in `net.py` is untouched; the pre-commit hook allows `127.0.0.1` in `flowserver.py` only. | Polling needs no streaming code and works the same for a live and a finished log. The page replays at its own pace, so a run that ends in a second is still watchable; the server stays up until the page has read the finished log (30 s at most). |
+| B39 | The README animation is an SVG animated with CSS only (no script, no GIF), made by `python -m norfigures.animation` from `docs/example-run.jsonl`, which that command records by replaying the spec's worked example offline. Claims are shown one after another; the pipeline maps all claims before verifying any, so only the order on screen and the timing are staged. Visibility, not opacity, switches captions (opacity animations stalled in headless Chrome). Tests fail if either file is stale, and check that every number in a caption is in the log. | A GIF needs an image library (not stdlib) and goes blurry; a CSS-animated SVG is small, sharp, works as a GitHub image and in dark mode. |
+| B40 | Run-log events carry what the flow map shows: `map` has the claim text, number, period and the phrases matched; `fetch` has the source and table or key, and logs failures (`guardrail: host_not_allowed`); `compare` has the stated value, the chosen series and the observation used. The provenance check is its own stage, and a failed run ends with `report: failed`. | The flow map only reads the log (spec section 14), so the log must say what each step took in and gave out. |
+
 ## Pending
 
 All spec section 7 edge cases are decided (D4 to D16).

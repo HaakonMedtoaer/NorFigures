@@ -8,6 +8,12 @@
 checks the economic figures in a Norwegian text against the official sources and
 tells you which ones are wrong, which are right, and which it could not check.
 
+![A NorFigures run, worker by worker: the extractor finds three claims, the mapper picks the series, SSB and Norges Bank are queried, the verifier compares, and the report ends on two mismatches and one forecast it cannot verify.](docs/run.svg)
+
+*One indicator per worker. The run is real (the worked example below, replayed
+from recorded responses); only the timing is staged. Made from the run log by
+`python -m norfigures.animation`.*
+
 ```text
 $ norfigures check memo.txt --published 2026-11-15
 
@@ -102,6 +108,23 @@ Only the **purple** box uses a model. Everything blue is plain, deterministic co
    headline or core inflation, both figures are shown with what each measures.
 5. **Report.** A table for people, JSON for pipelines, and an exit code for CI.
    The count line must add up, and nothing is dropped quietly.
+
+### Flow map
+
+Every run writes one JSON line per step to `runs/<run_id>.jsonl`. The flow map
+([`docs/flowmap.html`](docs/flowmap.html)) reads that log and nothing else:
+one static page, no framework, no build step. Each claim moves from box to box,
+the active box lights up, verdicts end in their colour, and guardrail hits
+(a blocked host, a schema failure, a number with no fetch behind it) show in
+red. Click a box to see what went in and came out for a claim, including the
+exact query.
+
+```bash
+norfigures check memo.txt --published 2026-11-15 --offline --flow   # follow a run live
+norfigures flow docs/example-run.jsonl                                # replay a saved run
+```
+
+Both serve the page on 127.0.0.1 only; the page never controls the pipeline.
 
 ## What Claude wrote and what I decided
 

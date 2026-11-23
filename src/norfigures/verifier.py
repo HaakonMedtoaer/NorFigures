@@ -16,7 +16,7 @@ from .claims import Claim
 from .events import RunLog
 from .fetch import fetch_series
 from .ledger import Series
-from .net import Client
+from .net import Client, HostNotAllowed
 from .sources.base import Observation
 
 MATCHED, MISMATCHED, CANNOT_VERIFY = "matched", "mismatched", "cannot_verify"
@@ -34,6 +34,17 @@ class ProvenanceError(Exception):
 # --------------------------------------------------------------------------- run
 
 
+def _fetch_detail(s: Series, start: str, end: str, obs: list[Observation]) -> dict:
+    """Where a fetch went, for the run log and the flow map: source, table or key."""
+    if s.source == "ssb":
+        tables = list(dict.fromkeys(o.dims.get("_table") for o in obs if o.dims.get("_table")))
+        ref = "table " + " + ".join(tables or [s.table])
+    else:
+        ref = f"{s.flow}/{s.key}"
+    return {"series_id": s.id, "source": s.source, "ref": ref, "concept": s.concept,
+            "start": start, "end": end}
+
+
 class Run:
     """Holds the client, the ledger and every observation fetched in this run."""
 
@@ -48,13 +59,20 @@ class Run:
               same_table: bool = False) -> list[Observation]:
         key = (s.id, start, end, same_table)
         if key not in self._cache:
-            obs = fetch_series(self.client, s, start=start, end=end, same_table=same_table)
+            try:
+                obs = fetch_series(self.client, s, start=start, end=end, same_table=same_table)
+            except Exception as e:
+                self.log.emit("fetch", "failed", claim_id, **_fetch_detail(s, start, end, []),
+                              error=str(e), guardrail="host_not_allowed"
+                              if isinstance(e, HostNotAllowed) else None)
+                raise
             self._registry.update(id(o) for o in obs)
             self._cache[key] = obs
-            self.log.emit("fetch", "ok", claim_id, series_id=s.id, start=start, end=end,
+            self.log.emit("fetch", "ok", claim_id, **_fetch_detail(s, start, end, obs),
                           observations=len(obs), url=obs[0].url if obs else None)
         else:
-            self.log.emit("fetch", "cached", claim_id, series_id=s.id, start=start, end=end)
+            self.log.emit("fetch", "cached", claim_id,
+                          **_fetch_detail(s, start, end, self._cache[key]))
         return self._cache[key]
 
     def is_registered(self, obs: Observation) -> bool:

@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NorFigures flow map</title>
+<!--
+  The NorFigures flow map (spec section 14). One static file, no framework, no build.
+  It only reads a run log (JSON lines: run_id, claim_id, stage, status, detail, ts);
+  it never controls the pipeline.
+
+  Replay: flowmap.html?log=example-run.jsonl (default), or open a .jsonl file below.
+          ?box=fetch&claim=c1 opens a box's events for one claim.
+  Live:   norfigures check FILE --flow serves this page and the log on 127.0.0.1 and
+          opens flowmap.html?live=1&log=/run.jsonl; the page polls the log (B38).
+-->
+<style>
+  :root {
+    --surface: #fcfcfb; --panel: #f4f3ef; --ink: #0b0b0b; --ink-2: #52514e; --rule: #e4e3de;
+    --ai: #7c3aed; --ai-bg: #f3e8ff; --code: #0369a1; --code-bg: #e0f2fe;
+    --src: #0f766e; --src-bg: #ccfbf1; --data-bg: #f1f0ec; --data: #8a897f;
+    --good: #0ca30c; --critical: #d03b3b; --warning: #c98a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #1a1a19; --panel: #232321; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #33322f;
+      --ai: #a78bfa; --ai-bg: #2e1f4d; --code: #38bdf8; --code-bg: #0c2a3d;
+      --src: #2dd4bf; --src-bg: #0d2f2b; --data-bg: #2a2a27; --data: #8f8e85;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--ink);
+         font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  header { padding: 16px 24px 8px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline; }
+  h1 { font-size: 18px; margin: 0; }
+  .muted { color: var(--ink-2); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0 24px 8px; }
+  button, select, label.file { font: inherit; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--rule);
+    background: var(--panel); color: var(--ink); cursor: pointer; }
+  button:focus-visible, select:focus-visible, .box:focus-visible, .chip:focus-visible { outline: 2px solid var(--code); outline-offset: 2px; }
+  label.file input { display: none; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; padding: 0 24px 24px; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+  #map { width: 100%; height: auto; display: block; }
+  .box rect { stroke-width: 1.5; transition: stroke-width .2s; }
+  .box text { fill: var(--ink); pointer-events: none; }
+  .box .kind { font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+  .box .name { font-size: 15px; font-weight: 600; }
+  .box { cursor: pointer; }
+  .box.ai rect { fill: var(--ai-bg); stroke: var(--ai); stroke-width: 2; }
+  .box.ai .kind { fill: var(--ai); }
+  .box.code rect { fill: var(--code-bg); stroke: var(--code); }
+  .box.code .kind { fill: var(--code); }
+  .box.source rect { fill: var(--src-bg); stroke: var(--src); }
+  .box.source .kind { fill: var(--src); }
+  .box.data rect { fill: var(--data-bg); stroke: var(--data); stroke-dasharray: 4 3; }
+  .box.data .kind { fill: var(--ink-2); }
+  .box.active rect { stroke-width: 4; animation: pulse 0.9s ease-in-out infinite; }
+  .box.selected rect { stroke-width: 3; }
+  .box.guard rect { stroke: var(--critical) !important; stroke-width: 4; }
+  .box .guardnote { fill: var(--critical); font-size: 12px; font-weight: 700; }
+  @keyframes pulse { 50% { stroke-opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .box.active rect { animation: none; } .marker { transition: none !important; } }
+  .edge { stroke: var(--ink-2); stroke-width: 1.5; fill: none; }
+  .edge.dashed { stroke-dasharray: 4 4; opacity: .7; }
+  .marker { transition: transform .55s cubic-bezier(.4, 0, .2, 1); cursor: pointer; }
+  .marker circle { stroke: var(--surface); stroke-width: 2; }
+  .marker text { font-size: 10px; font-weight: 700; fill: #fff; pointer-events: none; }
+  .panel { background: var(--panel); border-radius: 10px; padding: 12px 16px; }
+  .panel h2 { font-size: 13px; margin: 4px 0 8px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+  .chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .chip { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; text-align: left;
+          padding: 6px 8px; border-radius: 6px; border: 1px solid var(--rule); background: var(--surface); }
+  .chip.sel { border-color: var(--code); box-shadow: 0 0 0 1px var(--code); }
+  .chip .id { font-weight: 700; color: var(--ink-2); }
+  .badge { font-size: 12px; font-weight: 700; color: #fff; padding: 1px 8px; border-radius: 4px; white-space: nowrap; }
+  .badge.matched { background: var(--good); } .badge.mismatched { background: var(--critical); }
+  .badge.cannot_verify { background: var(--warning); } .badge.pending { background: var(--data); }
+  #detail { font-size: 13px; }
+  #detail .ev { border-top: 1px solid var(--rule); padding: 8px 0; }
+  #detail .ev.failed .head { color: var(--critical); font-weight: 700; }
+  #detail .head { font-weight: 600; }
+  #detail pre { margin: 4px 0 0; white-space: pre-wrap; word-break: break-word;
+                font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  #detail a { color: var(--code); word-break: break-all; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-2); padding: 4px 0 0; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+  #msg { color: var(--critical); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NorFigures flow map</h1>
+  <span class="muted" id="runinfo">No run loaded.</span>
+  <span id="msg" role="status"></span>
+</header>
+<div class="controls">
+  <button id="play" type="button">Pause</button>
+  <button id="step" type="button">Step</button>
+  <button id="restart" type="button">Restart</button>
+  <label class="muted">Speed
+    <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+  </label>
+  <label class="file">Open a run log… <input id="file" type="file" accept=".jsonl,.json,.txt"></label>
+  <span class="muted" id="progress"></span>
+</div>
+<main>
+  <section>
+    <svg id="map" viewBox="0 0 1000 470" role="img" aria-label="Pipeline: text, extractor, mapper, fetch, compare, report">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <g id="edges" style="color: var(--ink-2)"></g>
+      <g id="boxes"></g>
+      <g id="markers"></g>
+    </svg>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--ai)"></span>AI agent (the only model step)</span>
+      <span><span class="sw" style="background:var(--code)"></span>Code</span>
+      <span><span class="sw" style="background:var(--src)"></span>Official source</span>
+      <span><span class="sw" style="background:var(--data)"></span>Facts and tools beside the pipeline</span>
+      <span>✓ matched · ✗ mismatched · ? cannot verify · red outline: guardrail hit</span>
+    </div>
+  </section>
+  <aside class="panel">
+    <h2>Claims</h2>
+    <div class="chips" id="chips"><span class="muted">Claims appear as the extractor finds them.</span></div>
+    <h2 id="detailtitle">Click a box</h2>
+    <div id="detail" class="muted">Click a box to see what went in and came out for the selected claim, including the exact query.</div>
+  </aside>
+</main>
+<script>
+"use strict";
+// ------------------------------------------------------------------ layout
+const BOXES = [
+  { id: "text",      name: "Input text",        kind: "data",   label: "INPUT",      x: 20,  y: 180 },
+  { id: "extractor", name: "Extractor",         kind: "ai",     label: "AI · CLAUDE HAIKU 5.5", x: 180, y: 180 },
+  { id: "mapper",    name: "Phrase tables + mapper", kind: "code", label: "CODE",   x: 355, y: 180, w: 175 },
+  { id: "fetch",     name: "Fetch",             kind: "code",   label: "CODE · ALLOWLIST", x: 555, y: 180 },
+  { id: "compare",   name: "Compare",           kind: "code",   label: "CODE · DECIDED RULES", x: 715, y: 180 },
+  { id: "report",    name: "Report",            kind: "code",   label: "CODE · EXIT CODE", x: 870, y: 180, w: 115 },
+  { id: "ledger",    name: "facts/ledger.md",   kind: "data",   label: "LEDGER + PHRASES", x: 355, y: 40, w: 175 },
+  { id: "mcp",       name: "MCP server",        kind: "data",   label: "READ-ONLY TOOLS", x: 555, y: 40 },
+  { id: "ssb",       name: "data.ssb.no",       kind: "source", label: "SSB",        x: 480, y: 340 },
+  { id: "nb",        name: "data.norges-bank.no", kind: "source", label: "NORGES BANK", x: 650, y: 340, w: 165 },
+];
+const W = 140, H = 76;
+const EDGES = [["text","extractor"],["extractor","mapper"],["mapper","fetch"],["fetch","compare"],["compare","report"]];
+const SIDE = [["ledger","mapper"],["mcp","fetch"],["fetch","ssb"],["fetch","nb"]];
+const STAGE_BOX = { load: "text", extract: "extractor", validate: "mapper", map: "mapper",
+                    fetch: "fetch", compare: "compare", provenance: "compare", report: "report" };
+const VERDICT = { matched: ["✓", "Matched"], mismatched: ["✗", "Mismatched"],
+                  cannot_verify: ["?", "Cannot verify"], pending: ["…", "Pending"] };
+const SAFE_HOSTS = ["https://data.ssb.no/", "https://data.norges-bank.no/"];
+const NS = "http://www.w3.org/2000/svg";
+const box = id => BOXES.find(b => b.id === id);
+const bw = b => b.w || W;
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function drawMap() {
+  const edges = document.getElementById("edges"), g = document.getElementById("boxes");
+  const mid = b => [b.x + bw(b) / 2, b.y + H / 2];
+  for (const [a, b] of EDGES) {
+    const A = box(a), B = box(b);
+    el("path", { class: "edge", d: `M${A.x + bw(A)},${A.y + H / 2} L${B.x - 3},${B.y + H / 2}`, "marker-end": "url(#arrow)" }, edges);
+  }
+  for (const [a, b] of SIDE) {
+    const A = box(a), B = box(b), [ax, ay] = mid(A), [bx, by] = mid(B);
+    const y1 = ay < by ? A.y + H : A.y, y2 = ay < by ? B.y : B.y + H;
+    el("path", { class: "edge dashed", d: `M${ax},${y1} L${bx},${y2}` }, edges);
+  }
+  for (const b of BOXES) {
+    const grp = el("g", { class: `box ${b.kind}`, id: `box-${b.id}`, tabindex: 0, role: "button",
+                         "aria-label": `${b.name}: show events` }, g);
+    el("rect", { x: b.x, y: b.y, width: bw(b), height: H, rx: 10 }, grp);
+    el("text", { x: b.x + 12, y: b.y + 24, class: "kind" }, grp).textContent = b.label;
+    el("text", { x: b.x + 12, y: b.y + 48, class: "name" }, grp).textContent = b.name;
+    el("text", { x: b.x + 12, y: b.y + H + 16, class: "guardnote", id: `guard-${b.id}` }, grp);
+    grp.addEventListener("click", () => selectBox(b.id));
+    grp.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectBox(b.id); } });
+  }
+}
+
+// ------------------------------------------------------------------- state
+const S = { all: [], queue: [], shown: [], claims: new Map(), playing: true, speed: 1,
+            selClaim: null, selBox: null, live: false, logUrl: null, timer: null, done: false };
+
+function stageOrder(events) {
+  // Claims one after another, as in the README animation; run-level events keep their place.
+  const ids = [...new Set(events.filter(e => e.claim_id).map(e => e.claim_id))];
+  if (!ids.length) return events.slice();
+  const first = events.findIndex(e => e.claim_id);
+  const before = events.slice(0, first).filter(e => !e.claim_id);
+  const after = events.slice(first).filter(e => !e.claim_id);
+  return [...before, ...ids.flatMap(id => events.filter(e => e.claim_id === id)), ...after];
+}
+
+function parseLog(text) {
+  const out = [];
+  for (const [i, line] of text.split(/\r?\n/).entries()) {
+    if (!line.trim()) continue;
+    try { out.push(JSON.parse(line)); }
+    catch (e) { throw new Error(`line ${i + 1} is not JSON`); }
+  }
+  // A reused --log path holds several runs; show the latest one.
+  const last = out.length ? out[out.length - 1].run_id : null;
+  return out.filter(e => e.run_id === last);
+}
+
+function reset(events, ordered) {
+  S.all = events; S.queue = ordered ? stageOrder(events) : events.slice(); S.shown = [];
+  S.claims = new Map(); S.done = false;
+  S.selClaim = new URLSearchParams(location.search).get("claim");
+  document.querySelectorAll(".box").forEach(b => b.classList.remove("active", "guard"));
+  document.querySelectorAll(".guardnote").forEach(t => t.textContent = "");
+  document.getElementById("markers").replaceChildren();
+  renderChips(); renderDetail();
+  const run = events[0] ? events[0].run_id : "";
+  document.getElementById("runinfo").textContent = run ? `Run ${run}${S.live ? " · live" : " · replay"}` : "No run loaded.";
+  progress();
+}
+
+// --------------------------------------------------------------- playback
+function apply(e) {
+  S.shown.push(e);
+  document.querySelectorAll(".box.active").forEach(b => b.classList.remove("active"));
+  const bid = STAGE_BOX[e.stage];
+  const on = id => document.getElementById(`box-${id}`)?.classList.add("active");
+  if (bid) on(bid);
+  if (e.stage === "map") on("ledger");
+  if (e.stage === "fetch") on(e.detail.source === "norges_bank" ? "nb" : "ssb");
+  if (e.status === "failed") {
+    const gid = e.stage === "fetch" && e.detail.guardrail ? "fetch" : bid;
+    document.getElementById(`box-${gid}`)?.classList.add("guard");
+    const note = document.getElementById(`guard-${gid}`);
+    if (note) note.textContent = e.detail.guardrail ? `guardrail: ${e.detail.guardrail.replace(/_/g, " ")}` : "failed";
+  }
+  if (e.claim_id) {
+    const c = S.claims.get(e.claim_id) || { id: e.claim_id, text: "", verdict: "pending", box: "extractor" };
+    if (e.detail.source_text) c.text = e.detail.source_text;
+    if (e.stage === "compare") c.verdict = e.status;
+    c.box = bid || c.box;
+    S.claims.set(e.claim_id, c);
+    if (!S.selClaim) S.selClaim = e.claim_id;
+    moveMarker(c);
+  }
+  if (e.stage === "report") {
+    S.done = true;
+    for (const c of S.claims.values()) { c.box = "report"; moveMarker(c); }
+    setTimeout(() => document.querySelectorAll(".box.active").forEach(b => b.classList.remove("active")), 900);
+  }
+  renderChips();
+  if (S.selBox) renderDetail();
+  progress();
+}
+
+function moveMarker(c) {
+  const layer = document.getElementById("markers");
+  let m = document.getElementById(`m-${c.id}`);
+  const idx = [...S.claims.keys()].indexOf(c.id);
+  const b = box(c.box);
+  const x = b.x + 18 + (idx % 6) * 22, y = b.y + H - 2 + Math.floor(idx / 6) * 22;
+  if (!m) {
+    m = el("g", { class: "marker", id: `m-${c.id}`, tabindex: 0, role: "button", "aria-label": `Claim ${c.id}` }, layer);
+    el("circle", { r: 10 }, m);
+    el("text", { "text-anchor": "middle", y: 3.5 }, m);
+    m.addEventListener("click", () => { S.selClaim = c.id; renderChips(); renderDetail(); });
+    m.style.transform = `translate(${box("extractor").x + 18}px, ${box("extractor").y + H - 2}px)`;
+    m.getBoundingClientRect();
+  }
+  const color = { matched: "var(--good)", mismatched: "var(--critical)", cannot_verify: "var(--warning)" }[c.verdict] || "var(--ink-2)";
+  m.querySelector("circle").setAttribute("fill", color);
+  m.querySelector("text").textContent = c.verdict === "pending" ? c.id.replace(/^c/, "") : VERDICT[c.verdict][0];
+  m.style.transform = `translate(${x}px, ${y}px)`;
+}
+
+function tick() {
+  clearTimeout(S.timer);
+  if (S.playing && S.queue.length) apply(S.queue.shift());
+  if (S.playing && (S.queue.length || (S.live && !S.done))) S.timer = setTimeout(tick, 900 / S.speed);
+}
+
+function progress() {
+  document.getElementById("progress").textContent =
+    S.all.length ? `step ${S.shown.length} of ${S.all.length}${S.live && !S.done ? " (run in progress)" : ""}` : "";
+}
+
+// ---------------------------------------------------------------- panels
+function renderChips() {
+  const host = document.getElementById("chips");
+  if (!S.claims.size) { host.replaceChildren(Object.assign(document.createElement("span"), { className: "muted", textContent: "Claims appear as the extractor finds them." })); return; }
+  host.replaceChildren(...[...S.claims.values()].map(c => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip" + (c.id === S.selClaim ? " sel" : "");
+    const id = Object.assign(document.createElement("span"), { className: "id", textContent: c.id });
+    const t = Object.assign(document.createElement("span"), { textContent: c.text || "(no text)" });
+    const [icon, word] = VERDICT[c.verdict] || ["?", c.verdict];
+    const v = Object.assign(document.createElement("span"), { className: `badge ${c.verdict}`, textContent: `${icon} ${word}` });
+    b.append(id, t, v);
+    b.addEventListener("click", () => { S.selClaim = c.id; renderChips(); renderDetail(); });
+    return b;
+  }));
+}
+
+function selectBox(id) {
+  S.selBox = id;
+  document.querySelectorAll(".box").forEach(b => b.classList.toggle("selected", b.id === `box-${id}`));
+  renderDetail();
+}
+
+function renderDetail() {
+  const title = document.getElementById("detailtitle"), host = document.getElementById("detail");
+  if (!S.selBox) return;
+  const b = box(S.selBox);
+  const stages = Object.entries(STAGE_BOX).filter(([, v]) => v === S.selBox).map(([k]) => k);
+  const extra = { ledger: ["map"], ssb: ["fetch"], nb: ["fetch"] }[S.selBox] || [];
+  const want = new Set([...stages, ...extra]);
+  let evs = S.shown.filter(e => want.has(e.stage) && (!e.claim_id || !S.selClaim || e.claim_id === S.selClaim));
+  if (S.selBox === "ssb") evs = evs.filter(e => e.detail.source === "ssb");
+  if (S.selBox === "nb") evs = evs.filter(e => e.detail.source === "norges_bank");
+  title.textContent = `${b.name}${S.selClaim ? ` · claim ${S.selClaim}` : ""}`;
+  if (S.selBox === "mcp") {
+    host.replaceChildren(Object.assign(document.createElement("p"), { className: "muted",
+      textContent: "The MCP server exposes the same fetch layer as read-only tools. A check run does not use it, so it has no events here." }));
+    return;
+  }
+  if (!evs.length) { host.replaceChildren(Object.assign(document.createElement("p"), { className: "muted", textContent: "No events here yet for this claim." })); return; }
+  host.replaceChildren(...evs.map(e => {
+    const d = document.createElement("div");
+    d.className = "ev" + (e.status === "failed" ? " failed" : "");
+    const head = Object.assign(document.createElement("div"), { className: "head",
+      textContent: `${e.stage} · ${e.status}${e.claim_id ? ` · ${e.claim_id}` : ""}` });
+    d.append(head);
+    const url = e.detail && e.detail.url;
+    if (url && SAFE_HOSTS.some(h => url.startsWith(h))) {
+      const a = Object.assign(document.createElement("a"), { href: url, textContent: url, target: "_blank", rel: "noopener noreferrer" });
+      const p = document.createElement("div"); p.append("Query: ", a); d.append(p);
+    }
+    const pre = document.createElement("pre");
+    pre.textContent = JSON.stringify(e.detail, null, 2);
+    d.append(pre);
+    return d;
+  }));
+}
+
+// ---------------------------------------------------------------- loading
+function message(t) { document.getElementById("msg").textContent = t; }
+
+async function loadUrl(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+  return r.text();
+}
+
+function start(events) {
+  reset(events, !S.live); S.playing = true;
+  document.getElementById("play").textContent = "Pause";
+  tick();
+}
+
+async function poll() {
+  try {
+    const events = parseLog(await loadUrl(S.logUrl));
+    if (events.length && (!S.all.length || events[0].run_id !== S.all[0].run_id)) { start(events); }
+    else if (events.length > S.all.length) {
+      const fresh = events.slice(S.all.length);
+      S.all = events; S.queue.push(...fresh);   // the running tick loop picks them up
+    }
+    message("");
+    if (events.some(e => e.stage === "report")) return;   // run finished: stop polling
+  } catch (e) { message(`Waiting for the run log… (${e.message})`); }
+  setTimeout(poll, 400);
+}
+
+function init() {
+  drawMap();
+  const q = new URLSearchParams(location.search);
+  S.live = q.get("live") === "1";
+  S.logUrl = q.get("log") || "example-run.jsonl";
+  document.getElementById("play").onclick = () => {
+    S.playing = !S.playing;
+    document.getElementById("play").textContent = S.playing ? "Pause" : "Play";
+    if (S.playing) tick(); else clearTimeout(S.timer);
+  };
+  document.getElementById("step").onclick = () => {
+    S.playing = false; clearTimeout(S.timer);
+    document.getElementById("play").textContent = "Play";
+    if (S.queue.length) apply(S.queue.shift());
+  };
+  document.getElementById("restart").onclick = () => start(S.all);
+  document.getElementById("speed").onchange = e => { S.speed = Number(e.target.value); };
+  document.getElementById("file").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { S.live = false; start(parseLog(await f.text())); message(""); } catch (err) { message(`${f.name}: ${err.message}`); }
+  };
+  document.addEventListener("dragover", e => e.preventDefault());
+  document.addEventListener("drop", async e => {
+    e.preventDefault(); const f = e.dataTransfer.files[0]; if (!f) return;
+    try { S.live = false; start(parseLog(await f.text())); message(""); } catch (err) { message(`${f.name}: ${err.message}`); }
+  });
+  if (q.get("claim")) S.selClaim = q.get("claim");
+  if (q.get("box") && box(q.get("box"))) selectBox(q.get("box"));
+  if (S.live) { poll(); return; }
+  loadUrl(S.logUrl).then(t => start(parseLog(t)))
+    .catch(err => message(`Could not load ${S.logUrl} (${err.message}). Open a run log with the button, or drop one here.`));
+}
+init();
+</script>
+</body>
+</html>

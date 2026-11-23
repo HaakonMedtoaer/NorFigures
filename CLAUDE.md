@@ -22,7 +22,12 @@ claims and which series answers it. It never supplies a number. Every
   imports the Anthropic SDK. The model has no tools and never fetches data.
 - `src/norfigures/mapper.py`: deterministic mapping, no model (B18).
 - `src/norfigures/mcp_server.py`: read-only MCP tools over the fetch layer.
-- `src/norfigures/net.py`: the only network code. Allowlist of two hosts, GET only.
+- `src/norfigures/net.py`: the only code that fetches data. Allowlist of two hosts, GET only.
+- `src/norfigures/flowserver.py`: local server for the flow map (B38). 127.0.0.1 only,
+  serves `docs/flowmap.html` and one run log, makes no outbound requests.
+- `src/norfigures/animation.py`: makes `docs/example-run.jsonl` and the README's
+  `docs/run.svg` (B39). Re-run `python -m norfigures.animation` after changing the
+  log fields, the worked example or its recordings; a test fails if they are stale.
 - `src/norfigures/fetch.py`: the only path from a series ID to an official number.
 - `src/norfigures/verifier.py`: deterministic comparison under D4 to D16, plus the
   provenance check. No model is ever involved here.

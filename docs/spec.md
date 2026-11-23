@@ -290,7 +290,7 @@ A live flow map shows a run moving through the pipeline, so anyone can see which
 - Editing claims or rerunning steps from the page.
 - History across runs, dashboards or metrics.
 
-Open item: live mode via a stdlib server with server-sent events, or by polling the log file. Decide in weekend 5.
+Open item: live mode via a stdlib server with server-sent events, or by polling the log file. Decide in weekend 5. Decided 23 Nov 2026: polling (B38).
 
 ### README animation (decided 18 Nov 2026)
 
@@ -373,3 +373,7 @@ The MVP works as planned: the full loop passes all 20 test cases on real Claude 
 | 23 Nov | Data | Haiku gave a rate decision the meeting date (18 June 2025), but the cut took effect on 20 June, so a correct decision was flagged | A decision is checked against the rate once in force, up to 7 days after its date; before that it is "not yet in force", not a mismatch | B35 |
 | 23 Nov | Process | A failed extraction was saved as a recording anyway, so the next `--missing` run skipped the text as done | Output is checked before it is saved | B36 |
 | 23 Nov | AI | Haiku twice shortened "KPI justert for avgiftsendringer og uten energivarer (KPI-JAE)" to "KPI-JAE" in a quoted span, and the verbatim check failed the whole text | The extractor contract says to copy long names in full; the check stays strict. After a full re-record, all five long texts give 0 false alarms | B37 |
+| 23 Nov | Process | Live mode could use server-sent events or polling | Polling: a stdlib server on 127.0.0.1 serves the page and the log; the page polls and replays at its own pace. `check --flow` follows a run, `flow LOG` replays one | B38 |
+| 23 Nov | Design | The flow map only reads the log, but the log did not say which phrase matched, which table was read or what was compared | Map, fetch and compare events carry those fields; provenance is its own stage; failed fetches and failed runs are logged | B40 |
+| 23 Nov | Design | The README animation had to come from a real run without a screen recording or an image library | A CSS-animated SVG made from the worked example's log; tests fail if it is stale or shows a number not in the log | B39 |
+| 23 Nov | Process | Testing live mode: a blocking `BROWSER` command held the run until it closed, and a reused `--log` file made the page show the older run | The browser opens on a background thread; the page and the server look only at the latest run in a log | B38 |

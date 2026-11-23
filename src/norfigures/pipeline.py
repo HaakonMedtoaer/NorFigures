@@ -12,10 +12,10 @@ from datetime import date
 from .claims import Claim, SchemaError, validate
 from .events import RunLog
 from .ledger import Series
-from .lexicon import review
+from .lexicon import matched_phrases, review
 from .mapper import map_claim
 from .net import Client
-from .verifier import ClaimResult, Run, check_provenance, verify_claim
+from .verifier import ClaimResult, ProvenanceError, Run, check_provenance, verify_claim
 
 
 @dataclass
@@ -40,13 +40,24 @@ def verify_claims(data: object, client: Client, series: dict[str, Series],
     results = []
     for c in claims:
         res = verify_claim(c, run, published, today)
+        chosen = res.chosen
         log.emit("compare", res.verdict, c.id, labels=res.labels,
+                 source_text=c.source_text, claim_status=c.status,
+                 stated=str(c.stated_value) if c.stated_value is not None else None,
+                 chosen=chosen.series_id if chosen is not None else None,
                  readings=[{"series_id": r.series_id, "period": r.period,
                             "official": str(r.official_value) if r.official_value is not None else None,
+                            "observed": r.observations[-1].period if r.observations else None,
                             "matched": r.matched} for r in res.readings])
         results.append(res)
 
-    check_provenance(results, run)
+    try:
+        check_provenance(results, run)
+    except ProvenanceError as e:
+        log.emit("provenance", "failed", guardrail="provenance", error=str(e))
+        raise
+    log.emit("provenance", "ok",
+             checked=sum(1 for r in results for x in r.readings if x.has_data))
     return Outcome(log.run_id, results)
 
 
@@ -72,7 +83,10 @@ def prepare(extracted: list[dict], series: dict[str, Series], log: RunLog) -> li
             c["notes"] = (c.get("notes", "") + " " + note).strip()
         c["mappings"] = [{"series_id": i} for i in ids]
         log.emit("map", "ok" if ids else "unmapped", c["id"], mappings=ids,
-                 claim_status=c["status"], labels=c.get("labels", []))
+                 claim_status=c["status"], labels=c.get("labels", []),
+                 source_text=c.get("source_text"), stated=c.get("stated_value"),
+                 indicator=c.get("indicator"), measure=c.get("measure"), period=c.get("period"),
+                 phrases=matched_phrases(c.get("source_text") or "", c.get("stated_value")))
         out.append(c)
     return out
 
