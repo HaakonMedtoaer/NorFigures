@@ -171,11 +171,11 @@ class Client:
                 status = r.status
                 ctype = r.headers.get_content_type() if r.headers else "application/json"
         except urllib.error.HTTPError as e:
+            with e:
+                detail = e.read().decode("utf-8", errors="replace")[:300]
             if e.code >= 500 or e.code == 429:
                 # Transient: never recorded, always an error.
-                detail = e.read().decode("utf-8", errors="replace")[:300]
                 raise FetchError(f"HTTP {e.code} from {url}: {detail}", e.code, detail) from e
-            detail = e.read().decode("utf-8", errors="replace")[:300]
             return Response(url, e.code, detail, _now(), replayed=False)
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             raise FetchError(f"could not reach {url}: {e}") from e
