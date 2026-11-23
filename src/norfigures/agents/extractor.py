@@ -127,6 +127,9 @@ def extract(text: str, published: str | None, mode: str = "live",
     else:
         result = llm.complete_json(system_prompt(), user_prompt(text, published), OUTPUT_SCHEMA)
         replayed = False
+        # Validate before saving: a failed extraction must not leave a recording
+        # behind, or `record-agents --missing` would skip the text next time (B36).
+        claims = parse_output(result.text, text)
         if mode == "record":
             directory.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps({
@@ -136,7 +139,8 @@ def extract(text: str, published: str | None, mode: str = "live",
                 "recorded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             }, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 
-    claims = parse_output(result.text, text)
+    if replayed:
+        claims = parse_output(result.text, text)
     return Extraction(claims, result.model, result.input_tokens, result.output_tokens,
                       result.cost_usd, replayed)
 

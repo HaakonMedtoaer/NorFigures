@@ -64,6 +64,30 @@ class ReplayKeyTest(unittest.TestCase):
         self.assertEqual(a.claims, b.claims)
 
 
+class RecordModeTest(unittest.TestCase):
+    """B36: only output that passes the checks is saved as a recording."""
+
+    def _record(self, response_text):
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        from norfigures.agents import llm
+        d = Path(tempfile.mkdtemp())
+        fake = llm.LLMResult(response_text, "test-model", "end_turn", 10, 10)
+        with mock.patch.object(llm, "complete_json", return_value=fake):
+            try:
+                extractor.extract(TEXT, "2026-11-12", mode="record", directory=d)
+            except ExtractionError:
+                pass
+        return list(d.glob("extract_*.json"))
+
+    def test_failed_extraction_leaves_no_recording(self):
+        self.assertEqual(self._record(resp({"source_text": "Inflasjonen var 2,8 % i oktober"})), [])
+
+    def test_valid_extraction_is_recorded(self):
+        self.assertEqual(len(self._record(resp({"source_text": "Inflasjonen var 3,1 % i oktober"}))), 1)
+
+
 class NoKeyTest(unittest.TestCase):
     def test_missing_key_is_a_clean_agent_error(self):
         try:

@@ -31,7 +31,7 @@ reported as out of scope.
 
 ## Real-text rules
 
-Learned from SSB release articles and Norges Bank press releases (B26 to B31).
+Learned from SSB release articles and Norges Bank press releases (B26 to B31, B37).
 
 - **Name the subject in the span.** If the words saying what the figure is about
   come earlier in the same sentence, include them in `source_text`: "Til tross for
@@ -39,6 +39,11 @@ Learned from SSB release articles and Norges Bank press releases (B26 to B31).
   subject is in the previous sentence ("En oppgang på 0,6 prosentpoeng fra
   januar" after a sentence about KPI-JAE), keep the span to the claim's own
   sentence and set `indicator` from the sentence it continues.
+- **Copy a long name in full, never as its short form.** "KPI justert for
+  avgiftsendringer og uten energivarer (KPI-JAE) steg 3,4 prosent" must keep
+  every word up to the number; writing "KPI-JAE steg 3,4 prosent" there is not a
+  verbatim span and fails the whole text. If the full span feels too long, start
+  it at the name, not at a shortened form of it.
 - **One claim per figure.** "steg fra 3,4 prosent i september til 3,6 prosent i
   oktober" is two claims, each with its own period. For a rate decision, "ned fra
   4,5 til 4,25 prosent" is one claim: the new level, 4,25.
