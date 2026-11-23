@@ -70,8 +70,9 @@ class Hints:
     prices_generic: bool = False
     unemployment: bool = False            # an unemployment word (D16)
     unemployment_aku: bool = False        # names the AKU source (B43)
+    unemployment_nav: bool = False        # names NAV's registered unemployment (D20)
     unemployment_series: str | None = None  # "trend" | "3mma" | None (both) (B41)
-    out_of_scope: str | None = None       # key, e.g. "registered_unemployment"
+    out_of_scope: str | None = None       # key, e.g. "gdp"
     out_of_scope_specific: bool = False   # found by a pattern like "prisene på X" (B28)
     points: str | None = None             # "prosentpoeng" etc. (B27)
     rate_decision: str | None = None      # "settes ned" etc. (B29)
@@ -144,6 +145,7 @@ def hints(text: str, data: dict | None = None, number: str | None = None) -> Hin
     h.prices_generic = bool(found(text, ind["prices_generic"]))
     h.unemployment = bool(found(text, ind.get("unemployment", [])))
     h.unemployment_aku = bool(found(text, ind.get("unemployment_aku", [])))
+    h.unemployment_nav = bool(found(text, ind.get("unemployment_nav", [])))
     trend = bool(found(text, ind.get("unemployment_trend", [])))
     mma = bool(found(text, ind.get("unemployment_3mma", [])))
     h.unemployment_series = "trend" if trend and not mma else ("3mma" if mma and not trend else None)
@@ -223,8 +225,17 @@ def review(raw: dict, data: dict | None = None) -> dict:
     if h.hedges:
         override("hedged", True, f"hedge word '{h.hedges[0]}'")
 
+    if (c.get("status") == "out_of_scope" and h.unemployment_nav and not h.out_of_scope
+            and c.get("stated_value") not in (None, "")
+            and c.get("unit") in ("percent", "percentage_points")):
+        # NAV's registered unemployment is in scope now (D20); the extractor may
+        # still call it another indicator.
+        override("status", "checkable", "a NAV unemployment word")
+        override("indicator", "unemployment", "a NAV unemployment word")
+        c["other_indicator"] = None
+
     if c.get("status") == "checkable":
-        if h.unemployment and not general and c.get("indicator") not in ("policy_rate", "eurnok"):
+        if (h.unemployment or h.unemployment_nav) and not general                 and c.get("indicator") not in ("policy_rate", "eurnok"):
             override("indicator", "unemployment", "an unemployment word")
         if h.kpi_jae and c.get("indicator") in ("kpi", "kpi_jae", None):
             override("indicator", "kpi_jae", "a core-inflation phrase")
@@ -243,9 +254,9 @@ def review(raw: dict, data: dict | None = None) -> dict:
             override("measure", "12_month_change", "a price change in percent, not points")
         if c.get("indicator") == "policy_rate" and h.rate_decision and "rate_decision" not in labels:
             labels.append("rate_decision")
-        if c.get("indicator") == "unemployment" and not h.unemployment_aku \
+        if c.get("indicator") == "unemployment" and not (h.unemployment_aku or h.unemployment_nav) \
                 and "unemployment_source_unnamed" not in labels:
-            # Could be NAV's registered rate, which is not covered yet (D16, B43).
+            # Could be AKU or NAV's registered rate: all three series are checked (B43, D20).
             labels.append("unemployment_source_unnamed")
 
     c["labels"] = labels

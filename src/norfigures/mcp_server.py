@@ -1,4 +1,4 @@
-"""Read-only MCP server over the two official sources.
+"""Read-only MCP server over the official sources (SSB, Norges Bank, NAV).
 
 Run:  python -m norfigures.mcp_server     (stdio; needs `pip install 'norfigures[agents]'`)
 
@@ -14,7 +14,7 @@ from .ledger import load
 from .net import Client
 from .sources import norges_bank, ssb
 
-SOURCES = ("ssb", "norges_bank")
+SOURCES = ("ssb", "norges_bank", "nav")
 
 
 def _client() -> Client:
@@ -22,15 +22,15 @@ def _client() -> Client:
 
 
 def search_series(source: str, text: str) -> list[dict]:
-    """Find candidate tables (SSB) or ledger series (Norges Bank) by keyword."""
+    """Find candidate tables (SSB) or ledger series (Norges Bank, NAV) by keyword."""
     if source not in SOURCES:
         raise ValueError(f"source must be one of {SOURCES}")
     if source == "ssb":
         return ssb.search_tables(_client(), text)
     words = text.lower().split()
-    return [{"series_id": s.id, "flow": s.flow, "key": s.key, "concept": s.concept}
+    return [{"series_id": s.id, "flow": s.flow, "key": s.key, "table": s.table, "concept": s.concept}
             for s in load().values()
-            if s.source == "norges_bank" and any(w in (s.concept + " " + s.id).lower() for w in words)]
+            if s.source == source and any(w in (s.concept + " " + s.id).lower() for w in words)]
 
 
 def describe_series(source: str, series_id: str) -> dict:
@@ -45,6 +45,12 @@ def describe_series(source: str, series_id: str) -> dict:
         info = ssb.describe_table(_client(), s.table if s else series_id)
         info["dimensions"] = {k: {"label": v["label"], "codes": dict(list(v["codes"].items())[:50]),
                                   "count": len(v["codes"])} for k, v in info["dimensions"].items()}
+    elif source == "nav":
+        # NAV has no API to describe; the ledger says what is read (D20).
+        if s is None:
+            raise ValueError("NAV series must be a ledger ID (nav_registered)")
+        info = {"table": s.table, "sheet": s.selection["sheet"], "row": s.selection["row"],
+                "breaks": [list(b) for b in s.breaks]}
     else:
         if s is None:
             flow, _, key = series_id.partition("/")

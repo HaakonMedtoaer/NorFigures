@@ -5,7 +5,8 @@ from pathlib import Path
 from norfigures import net
 from norfigures.ledger import LedgerError, load
 
-SERIES = {"kpi_12m", "kpi_monthly", "kpi_jae_12m", "aku_trend", "aku_3mma", "policy_rate", "eurnok"}
+SERIES = {"kpi_12m", "kpi_monthly", "kpi_jae_12m", "aku_trend", "aku_3mma", "nav_registered",
+          "policy_rate", "eurnok"}
 
 
 class LedgerTest(unittest.TestCase):

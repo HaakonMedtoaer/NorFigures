@@ -102,7 +102,7 @@ Only the **purple** box uses a model. Everything blue is plain, deterministic co
    hedges ("rundt"), forecasts ("venter"), measures ("siste tolv måneder") and
    indicators. Code picks the series from the [ledger](facts/ledger.md). Where
    the tables and the model disagree, the tables win, and the report says so.
-3. **Fetch.** The only network code allows two hosts and only GET requests.
+3. **Fetch.** The only network code allows three hosts and only GET requests.
 4. **Compare.** Rounding, hedges, ranges and ambiguity follow the rules in
    [`docs/decisions.md`](docs/decisions.md). When "inflasjonen" could mean
    headline or core inflation, both figures are shown with what each measures.
@@ -143,14 +143,15 @@ Claude Code wrote the code. I wrote the spec and made the calls; each one is in
   about $0.0006 per check on average over the test set.
 - **Two layers** (D18). The core is standard library only and runs offline;
   the AI step is an optional install.
-- **What was cut.** GDP and wages wait; unemployment (AKU) was added after the MVP (D16, B41 to B43).
+- **What was cut.** GDP and wages wait; unemployment (AKU, then NAV) was added after the MVP (D16, B41 to B43, D20).
   The planned mapper agent became plain code (B18).
 
 ## Guardrails
 
 | Guardrail | Enforced by |
 |---|---|
-| Two data hosts, GET only | `net.py`; tests try redirects, look-alike hosts and other methods |
+| Three data hosts, GET only | `net.py`; tests try redirects, look-alike hosts and other methods. `www.nav.no` only under its statistics and download paths (D20) |
+| Source shape | NAV's page and file are scraped; every expected shape is checked, and a weekly live check (`live-sources` workflow) runs all sources against the real sites |
 | Number provenance | Every official value must equal observations fetched in this run, or exit 3 |
 | Verbatim extraction | Claims and numbers must appear in the input text, or exit 3 |
 | No silent repairs | Invalid claims fail loudly, with every problem listed |
@@ -160,10 +161,12 @@ Claude Code wrote the code. I wrote the spec and made the calls; each one is in
 ## Known limits
 
 - Five indicators: KPI (12-month and monthly change), KPI-JAE (12-month),
-  Norges Bank's policy rate, EUR/NOK and AKU unemployment (trend and 3-month
-  average). NAV's registered unemployment is not covered yet: an unemployment
-  figure that names no source and matches neither AKU series is reported as
-  "could not verify" (B43).
+  Norges Bank's policy rate, EUR/NOK and unemployment: AKU (trend and 3-month
+  average) and NAV's registered rate. An unemployment figure that names no
+  source is checked against all three (D20).
+- NAV has no API, so its figures are read from the files on its statistics
+  page. If NAV redesigns the page or the file, the check fails loudly; a weekly
+  live check catches it (D20). NAV months from 2020 only.
 - Compares against the latest published value, not the value as first published.
   For 2025 and earlier, that is the rate SSB published before its 2026 rebase.
 - Numeric claims only. "Rekordsvak krone" is reported, not checked.

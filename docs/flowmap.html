@@ -145,15 +145,18 @@ const BOXES = [
   { id: "mcp",       name: "MCP server",        kind: "data",   label: "READ-ONLY TOOLS", x: 555, y: 40 },
   { id: "ssb",       name: "data.ssb.no",       kind: "source", label: "SSB",        x: 480, y: 340 },
   { id: "nb",        name: "data.norges-bank.no", kind: "source", label: "NORGES BANK", x: 650, y: 340, w: 165 },
+  { id: "nav",       name: "www.nav.no",        kind: "source", label: "NAV · FILES", x: 835, y: 340 },
 ];
 const W = 140, H = 76;
 const EDGES = [["text","extractor"],["extractor","mapper"],["mapper","fetch"],["fetch","compare"],["compare","report"]];
-const SIDE = [["ledger","mapper"],["mcp","fetch"],["fetch","ssb"],["fetch","nb"]];
+const SIDE = [["ledger","mapper"],["mcp","fetch"],["fetch","ssb"],["fetch","nb"],["fetch","nav"]];
 const STAGE_BOX = { load: "text", extract: "extractor", validate: "mapper", map: "mapper",
                     fetch: "fetch", compare: "compare", provenance: "compare", report: "report" };
 const VERDICT = { matched: ["✓", "Matched"], mismatched: ["✗", "Mismatched"],
                   cannot_verify: ["?", "Cannot verify"], pending: ["…", "Pending"] };
-const SAFE_HOSTS = ["https://data.ssb.no/", "https://data.norges-bank.no/"];
+const SAFE_HOSTS = ["https://data.ssb.no/", "https://data.norges-bank.no/",
+                    "https://www.nav.no/_/attachment/download/", "https://www.nav.no/no/nav-og-samfunn/statistikk/"];
+const SOURCE_BOX = { ssb: "ssb", norges_bank: "nb", nav: "nav" };
 const NS = "http://www.w3.org/2000/svg";
 const box = id => BOXES.find(b => b.id === id);
 const bw = b => b.w || W;
@@ -236,7 +239,7 @@ function apply(e) {
   const on = id => document.getElementById(`box-${id}`)?.classList.add("active");
   if (bid) on(bid);
   if (e.stage === "map") on("ledger");
-  if (e.stage === "fetch") on(e.detail.source === "norges_bank" ? "nb" : "ssb");
+  if (e.stage === "fetch") on(SOURCE_BOX[e.detail.source] || "ssb");
   if (e.status === "failed") {
     const gid = e.stage === "fetch" && e.detail.guardrail ? "fetch" : bid;
     document.getElementById(`box-${gid}`)?.classList.add("guard");
@@ -321,11 +324,10 @@ function renderDetail() {
   if (!S.selBox) return;
   const b = box(S.selBox);
   const stages = Object.entries(STAGE_BOX).filter(([, v]) => v === S.selBox).map(([k]) => k);
-  const extra = { ledger: ["map"], ssb: ["fetch"], nb: ["fetch"] }[S.selBox] || [];
+  const extra = { ledger: ["map"], ssb: ["fetch"], nb: ["fetch"], nav: ["fetch"] }[S.selBox] || [];
   const want = new Set([...stages, ...extra]);
   let evs = S.shown.filter(e => want.has(e.stage) && (!e.claim_id || !S.selClaim || e.claim_id === S.selClaim));
-  if (S.selBox === "ssb") evs = evs.filter(e => e.detail.source === "ssb");
-  if (S.selBox === "nb") evs = evs.filter(e => e.detail.source === "norges_bank");
+  if (["ssb", "nb", "nav"].includes(S.selBox)) evs = evs.filter(e => SOURCE_BOX[e.detail.source] === S.selBox);
   title.textContent = `${b.name}${S.selClaim ? ` · claim ${S.selClaim}` : ""}`;
   if (S.selBox === "mcp") {
     host.replaceChildren(Object.assign(document.createElement("p"), { className: "muted",

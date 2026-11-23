@@ -2,7 +2,9 @@
 
 Guardrails (spec section 10):
 - Host allowlist: every request goes through `get()`, which refuses any host
-  other than the two official API hosts, in live AND replay mode.
+  other than the official sources, in live AND replay mode. SSB and Norges Bank
+  are API hosts; NAV has no API, so `www.nav.no` is allowed only under the
+  statistics pages and their file downloads (D20).
 - Read-only by construction: this module can only issue HTTP GET. There is no
   other method, and nothing else in the package opens sockets.
 
@@ -14,6 +16,7 @@ Transports:
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -24,7 +27,15 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-ALLOWED_HOSTS = frozenset({"data.ssb.no", "data.norges-bank.no"})
+ALLOWED_HOSTS = frozenset({"data.ssb.no", "data.norges-bank.no", "www.nav.no"})
+
+# Hosts that serve more than data are limited to these path prefixes (D20).
+ALLOWED_PATHS = {
+    "www.nav.no": ("/no/nav-og-samfunn/statistikk/", "/_/attachment/download/"),
+}
+
+# Bodies larger than this are refused: the biggest file we read is about 30 kB.
+MAX_BODY_BYTES = 5_000_000
 
 USER_AGENT = "NorFigures/0.1 (+open-source fact verifier)"
 DEFAULT_TIMEOUT = 30
@@ -55,9 +66,10 @@ class RecordingMissing(NetError):
 class Response:
     url: str
     status: int
-    body: str
+    body: str          # text responses (JSON, HTML); "" for a binary file
     retrieved_at: str  # ISO 8601, UTC
     replayed: bool
+    content: bytes | None = None  # binary responses (NAV's xlsx files), else None
 
     def json(self):
         return json.loads(self.body)
@@ -84,7 +96,20 @@ def check_url(url: str) -> str:
     host = (parts.hostname or "").lower()
     if host not in ALLOWED_HOSTS:
         raise HostNotAllowed(f"host {host!r} is not on the allowlist {sorted(ALLOWED_HOSTS)}")
+    if host in ALLOWED_PATHS:
+        path = parts.path
+        segments = urllib.parse.unquote(path).split("/")
+        if any(s in (".", "..") for s in segments) or "%2f" in path.lower() or "\\" in path:
+            raise HostNotAllowed(f"path tricks are not allowed: {url}")
+        if not path.startswith(ALLOWED_PATHS[host]):
+            raise HostNotAllowed(f"path {path!r} on {host} is not on the allowlist "
+                                 f"{list(ALLOWED_PATHS[host])}")
     return host
+
+
+def _is_text(content_type: str) -> bool:
+    return content_type.startswith("text/") or content_type in (
+        "application/json", "application/xml") or content_type.endswith("+json")
 
 
 def recording_path(url: str, directory: Path) -> Path:
@@ -130,20 +155,28 @@ class Client:
             with urllib.request.urlopen(req, timeout=self.timeout) as r:
                 # A redirect could leave the allowlist; check where we ended up.
                 check_url(r.geturl())
-                body = r.read().decode("utf-8")
+                raw = r.read(MAX_BODY_BYTES + 1)
+                if len(raw) > MAX_BODY_BYTES:
+                    raise FetchError(f"response from {url} is larger than {MAX_BODY_BYTES} bytes")
                 status = r.status
+                ctype = r.headers.get_content_type() if r.headers else "application/json"
         except urllib.error.HTTPError as e:
             detail = e.read().decode("utf-8", errors="replace")[:300]
             raise FetchError(f"HTTP {e.code} from {url}: {detail}") from e
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             raise FetchError(f"could not reach {url}: {e}") from e
-        return Response(url, status, body, _now(), replayed=False)
+        if _is_text(ctype):
+            return Response(url, status, raw.decode("utf-8"), _now(), replayed=False)
+        return Response(url, status, "", _now(), replayed=False, content=raw)
 
     def _save(self, resp: Response) -> None:
         self.recordings_dir.mkdir(parents=True, exist_ok=True)
         path = recording_path(resp.url, self.recordings_dir)
-        record = {"url": resp.url, "status": resp.status,
-                  "retrieved_at": resp.retrieved_at, "body": resp.body}
+        record = {"url": resp.url, "status": resp.status, "retrieved_at": resp.retrieved_at}
+        if resp.content is not None:
+            record["body_base64"] = base64.b64encode(resp.content).decode("ascii")
+        else:
+            record["body"] = resp.body
         path.write_text(json.dumps(record, ensure_ascii=False, indent=1) + "\n",
                         encoding="utf-8")
 
@@ -156,6 +189,9 @@ class Client:
         rec = json.loads(path.read_text(encoding="utf-8"))
         if rec["url"] != url:
             raise RecordingMissing(f"recording {path.name} is for a different URL")
+        if "body_base64" in rec:
+            return Response(url, rec["status"], "", rec["retrieved_at"], replayed=True,
+                            content=base64.b64decode(rec["body_base64"]))
         return Response(url, rec["status"], rec["body"], rec["retrieved_at"], replayed=True)
 
 

@@ -108,10 +108,15 @@ class GuardrailTest(unittest.TestCase):
             summarize([ClaimResult(c, "something_else")])
 
 
-def _aku(text, value, period="2026-08", labels=(), measure="level", unit="percent"):
+def _aku(text, value, period="2026-08", labels=(), measure="level", unit="percent",
+         mappings=("aku_trend", "aku_3mma")):
     return {"id": "c1", "source_text": text, "status": "checkable", "indicator": "unemployment",
             "measure": measure, "period": period, "unit": unit, "stated_value": value,
-            "labels": list(labels), "mappings": [{"series_id": "aku_trend"}, {"series_id": "aku_3mma"}]}
+            "labels": list(labels), "mappings": [{"series_id": m} for m in mappings]}
+
+
+def _nav(text, value, period="2026-10", **kw):
+    return _aku(text, value, period, mappings=("nav_registered",), **kw)
 
 
 class UnemploymentTest(unittest.TestCase):
@@ -135,11 +140,17 @@ class UnemploymentTest(unittest.TestCase):
         res = self.verify(_aku("AKU-ledigheten var 4,9 prosent i august", "4.9"))
         self.assertEqual(res.verdict, MISMATCHED)
 
-    def test_wrong_figure_without_a_source_may_be_nav(self):
-        res = self.verify(_aku("Ledigheten var 2,1 prosent i august", "2.1",
+    def test_unsourced_figure_is_checked_against_aku_and_nav(self):
+        # D20 replaces B43's "cannot verify": NAV's August 2026 rate is 2.1.
+        three = ["aku_trend", "aku_3mma", "nav_registered"]
+        res = self.verify(_aku("Ledigheten var 2,1 prosent i august", "2.1", mappings=three,
                                labels=["unemployment_source_unnamed"]))
-        self.assertEqual(res.verdict, CANNOT_VERIFY)
-        self.assertTrue(any("NAV" in n for n in res.notes))
+        self.assertEqual(res.verdict, MATCHED)
+        self.assertEqual(res.chosen.series_id, "nav_registered")
+        res = self.verify(_aku("Ledigheten var 3,0 prosent i august", "3.0", mappings=three,
+                               labels=["unemployment_source_unnamed"]))
+        self.assertEqual(res.verdict, MISMATCHED)
+        self.assertEqual(len(res.readings), 3)
 
     def test_latest_month_waits_for_the_three_month_average(self):
         # The 3-month average for September needs October; until then a wrong
@@ -159,6 +170,57 @@ class UnemploymentTest(unittest.TestCase):
                                measure="change", unit="percentage_points"))
         self.assertEqual(res.verdict, MATCHED)
         self.assertEqual(str(res.readings[0].official_value), "0.1")
+
+
+class NavTest(unittest.TestCase):
+    """NAV registered unemployment (D20), against the recorded page and table files."""
+
+    def setUp(self):
+        self.series = load()
+
+    def verify(self, claim, published=date(2026, 11, 15)):
+        run = Run(client(), self.series)
+        return verify_claim(_claims(claim)[0], run, published, TODAY)
+
+    def test_match_and_mismatch(self):
+        res = self.verify(_nav("Den registrerte ledigheten var 2,0 prosent i oktober", "2.0"))
+        self.assertEqual(res.verdict, MATCHED)
+        self.assertTrue(res.chosen.observations[0].url.startswith("https://www.nav.no/_/attachment/"))
+        res = self.verify(_nav("Den registrerte ledigheten var 2,1 prosent i oktober", "2.1"))
+        self.assertEqual(res.verdict, MISMATCHED)
+
+    def test_earlier_year_from_the_archive(self):
+        res = self.verify(_nav("Den registrerte ledigheten var 2,1 prosent i desember 2025", "2.1",
+                               period="2025-12"))
+        self.assertEqual(res.verdict, MATCHED)
+
+    def test_inferred_month_uses_nav_release_timing(self):
+        # NAV publishes month M late in month M (offset 0). On 15 November only
+        # October is out; on 23 November November may be meant too, but is not out.
+        res = self.verify(_nav("Den registrerte ledigheten er 2,0 prosent", "2.0", period=None))
+        self.assertEqual([r.period for r in res.readings], ["2026-10"])
+        self.assertEqual(res.verdict, MATCHED)
+        res = self.verify(_nav("Den registrerte ledigheten er 2,0 prosent", "2.0", period=None),
+                          published=date(2026, 11, 23))
+        self.assertEqual([r.period for r in res.readings], ["2026-11", "2026-10"])
+        self.assertEqual(res.verdict, MATCHED)
+
+    def test_level_inside_the_break_is_checked_as_published(self):
+        res = self.verify(_nav("Den registrerte ledigheten var 2,0 prosent i mai 2025", "2.0",
+                               period="2025-05"))
+        self.assertEqual(res.verdict, MATCHED)
+
+    def test_change_across_the_break_is_not_computed(self):
+        res = self.verify(_nav("Den registrerte ledigheten falt med 0,1 prosentpoeng i april 2025", "0.1",
+                               period="2025-04", measure="change", unit="percentage_points"))
+        self.assertEqual(res.verdict, CANNOT_VERIFY)
+        self.assertTrue(any("break" in n for n in res.notes))
+
+    def test_change_after_the_break(self):
+        res = self.verify(_nav("Den registrerte ledigheten falt med 0,1 prosentpoeng i september", "0.1",
+                               period="2026-09", measure="change", unit="percentage_points"))
+        self.assertEqual(res.verdict, MATCHED)
+        self.assertEqual(str(res.readings[0].official_value), "-0.1")
 
 
 if __name__ == "__main__":

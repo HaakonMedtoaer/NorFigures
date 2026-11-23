@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from .ledger import Series
 from .net import Client
-from .sources import norges_bank, ssb
+from .sources import nav, norges_bank, ssb
 from .sources.base import Observation
 
 
@@ -34,6 +34,9 @@ def fetch_series(client: Client, series: Series, start: str | None = None,
     if series.source == "norges_bank":
         return norges_bank.fetch(client, series.id, series.flow, series.key,
                                  start=start, end=end, last_n=last_n)
+    if series.source == "nav":
+        return nav.fetch(client, series.id, series.table, series.selection,
+                         start=start, end=end, last_n=last_n)
     raise ValueError(f"unknown source {series.source!r}")
 
 

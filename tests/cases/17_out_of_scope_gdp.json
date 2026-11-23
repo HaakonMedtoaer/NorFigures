@@ -1,0 +1,31 @@
+{
+  "description": "BNP for Fastlands-Norge økte med 0,4 prosent i tredje kvartal.",
+  "category": "no_figure",
+  "published": "2026-11-15",
+  "text": "BNP for Fastlands-Norge økte med 0,4 prosent i tredje kvartal.",
+  "claims": [
+    {
+      "id": "c1",
+      "source_text": "BNP for Fastlands-Norge økte med 0,4 prosent i tredje kvartal",
+      "status": "out_of_scope",
+      "indicator": "gdp",
+      "measure": null,
+      "period": null,
+      "unit": "percent",
+      "stated_value": "0.4",
+      "mappings": []
+    }
+  ],
+  "expected": {
+    "exit_code": 2,
+    "claims": {
+      "c1": {
+        "verdict": "cannot_verify",
+        "labels_include": [
+          "out_of_scope"
+        ]
+      }
+    }
+  },
+  "why": "GDP is not covered yet (spec section 15). It is reported by name, never dropped. Until D20 this case was NAV's registered unemployment, which is now checked."
+}

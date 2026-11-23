@@ -15,6 +15,9 @@ Code reads the `series` JSON block below. Edit it here and nowhere else.
 | SSB release timing for KPI | KPI for month M is published on the 10th of month M+1, or the nearest working day (Fri 9 Oct 2026, Mon 11 May 2026); July is later (15 Jul 2026). Inference checks both possible months on days 1 to 15 (B11), which covers all of these. | [SSB article list](https://www.ssb.no/priser-og-prisindekser/konsumpriser/statistikk/konsumprisindeksen/artikler), 2025 and 2026 | 2026-11-19 |
 | SSB release timing for AKU (labour force survey) | Monthly figures for month M are published 3 to 4 weeks after M ends ("Månedlig publisering av trendtall og sesongjusterte tall 3-4 uker etter utløpet av måneden"). Observed for February to September 2026: day 21 to 26 of month M+1 (September 2026: 22 October). Inference uses the window day 20 to 27 (B42). | [SSB AKU statistics page](https://www.ssb.no/arbeid-og-lonn/sysselsetting/statistikk/arbeidskraftundersokelsen), [AKU articles](https://www.ssb.no/arbeid-og-lonn/sysselsetting/statistikk/arbeidskraftundersokelsen/artikler) | 2026-11-23 |
 | SSB's headline AKU unemployment rate | The **trend** figure. The statistics page's key-figure table is headed "Trendtall" (September 2026: 4,6 % of the labour force, 141 000 people), and table 13760's note recommends the trend and the 3-month moving average of seasonally adjusted figures; the other two series are "hovedsakelig av hensyn til ekspertbrukere". | SSB AKU statistics page; table 13760 notes | 2026-11-23 |
+| NAV release timing for registered unemployment | NAV publishes month M late in month M itself, always on a Friday at 08.00 ("Hovedtall om arbeidsmarkedet publiseres alltid på fredager"): November 2026 on 27 November, December 2026 on 18 December. The table file on the statistics page can follow a few days later (the October 2026 file is dated 5 November). Inference uses days 18 to 31 of month M (D20). | [NAV publiseringskalender](https://www.nav.no/no/nav-og-samfunn/statistikk/publiseringskalender) | 2026-11-23 |
+| Break in NAV's registered unemployment | A new job-seeker register broke the series for April to July 2025 ("brudd i statistikken for april til juli 2025"). NAV recommends comparing from July 2025 onwards and does not publish year-on-year comparisons across it. Levels are kept as published; a change across the break is not computed. | [NAV: Helt ledige](https://www.nav.no/no/nav-og-samfunn/statistikk/arbeidssokere-og-stillinger-statistikk/helt-ledige); note in table HL050 | 2026-11-23 |
+| Terms of use for NAV's statistics | CC BY 4.0 (data.norge.no lists both NAV "helt ledige" datasets under it). No API: the figures are published as files on www.nav.no. | [data.norge.no: Statistikk helt arbeidsledige](https://data.norge.no/en/datasets/2a822275-534e-3bd3-8712-68f20c53f719) | 2026-11-23 |
 | Terms of use for the data | SSB: CC BY 4.0, including the API (credit SSB). Norges Bank: open API, no sign-in; site terms allow copying with Norges Bank named as source. No rate limit is published; SSB's API answers 40 requests a minute. | [SSB licence](https://www.ssb.no/diverse/lisens), [SSB API](https://www.ssb.no/api), [Norges Bank copyright](https://www.norges-bank.no/Opphavsrett/), [Norges Bank open data](https://www.norges-bank.no/tema/statistikk/apne-data/) | 2026-11-19 |
 
 ## Indicator definitions
@@ -35,8 +38,10 @@ Code reads the `series` JSON block below. Edit it here and nowhere else.
   which is not covered yet (B43). The 3-month moving average is named after its
   **middle** month: the figure for February is the average of January to March.
 - **Registered unemployment (NAV)**: people registered as wholly unemployed with
-  NAV ("registrert ledighet", "helt ledige"). A different, lower figure. Out of
-  scope until NAV is added (D16).
+  NAV ("registrert ledighet", "helt ledige") as a percent of the labour force. A
+  different, lower figure than AKU (October 2026: 2,0 against AKU's 4,6 for
+  September). Partly unemployed and job seekers on programmes ("delvis ledige",
+  "arbeidssøkere") are not included and stay out of scope (D20).
 
 ## Canonical series
 
@@ -61,7 +66,15 @@ Confirmed against the live APIs on 2026-11-14.
   adjusted) and IS (unadjusted) are not used. Trend figures are revised each
   month (August 2026: published 4,5, now 4,6); under D6 the latest value counts.
 - `release_window` (monthly series): month M is published between these days of
-  month M+1. Without it, the KPI default applies: days 1 to 15 (B11).
+  month M+1 (month M itself with `"release_month_offset": 0`). Without it, the
+  KPI default applies: days 1 to 15 of month M+1 (B11).
+- NAV (confirmed 2026-11-23): no API. Table HL050 ("Helt ledige. Kjønn og alder.
+  Tidsserie måned"), sheet "2. Kjønn Prosent av arbeidsstyrken", row "I alt",
+  one decimal (cell format `#,##0.0`). The file for the current year is linked
+  from the "Helt ledige" page as `<YYYYMM>_HL050 ... .xlsx` under a URL with a
+  content hash, so it is found on the page at each run (`sources/nav.py`). Earlier
+  years: the December file on `arkiv-helt-ledige.<year>` (2020 onwards). The
+  labour force is SSB's AKU up to 2021, SSB's register data from 2022.
 
 ```json series
 {
@@ -106,6 +119,15 @@ Confirmed against the live APIs on 2026-11-14.
     "source": "ssb", "frequency": "M", "table": "13760",
     "selection": {"Kjonn": "0", "Alder": "15-74", "Justering": "3MGG", "ContentsCode": "ArbledProsArbstyrk"},
     "release_window": [20, 27],
+    "confirmed": "2026-11-23"
+  },
+  "nav_registered": {
+    "indicator": "unemployment", "measure": "level", "unit": "percent",
+    "concept": "Registered unemployment (NAV), wholly unemployed, % of labour force",
+    "source": "nav", "frequency": "M", "table": "HL050",
+    "selection": {"sheet": ["Kjønn", "Prosent"], "row": "I alt"},
+    "release_window": [18, 31], "release_month_offset": 0,
+    "breaks": [["2025-04", "2025-07"]],
     "confirmed": "2026-11-23"
   },
   "policy_rate": {

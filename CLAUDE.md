@@ -1,7 +1,7 @@
 # NorFigures: instructions for Claude and other agents
 
 NorFigures verifies Norwegian economic figures (KPI, KPI-JAE, policy rate,
-EUR/NOK) in ordinary text against SSB and Norges Bank. Full spec: `docs/spec.md`.
+EUR/NOK, unemployment) in ordinary text against SSB, Norges Bank and NAV. Full spec: `docs/spec.md`.
 
 ## The one rule
 
@@ -22,7 +22,12 @@ claims and which series answers it. It never supplies a number. Every
   imports the Anthropic SDK. The model has no tools and never fetches data.
 - `src/norfigures/mapper.py`: deterministic mapping, no model (B18).
 - `src/norfigures/mcp_server.py`: read-only MCP tools over the fetch layer.
-- `src/norfigures/net.py`: the only code that fetches data. Allowlist of two hosts, GET only.
+- `src/norfigures/net.py`: the only code that fetches data. Allowlist of three hosts, GET only;
+  `www.nav.no` only under two path prefixes (D20).
+- `src/norfigures/sources/nav.py`: NAV has no API, so its page and xlsx file are scraped.
+  Every expected shape is checked; `tests/test_nav.py` pins each one. The weekly
+  `live-sources` workflow (`NORFIGURES_LIVE=1 python -m unittest tests.test_live_sources`)
+  is what notices when NAV changes its site: fix the parser, then re-record.
 - `src/norfigures/flowserver.py`: local server for the flow map (B38). 127.0.0.1 only,
   serves `docs/flowmap.html` and one run log, makes no outbound requests.
 - `src/norfigures/animation.py`: makes `docs/example-run.jsonl` and the README's

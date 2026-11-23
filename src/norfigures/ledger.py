@@ -17,10 +17,11 @@ LEDGER_PATH = REPO_ROOT / "facts" / "ledger.md"
 
 _BLOCK = re.compile(r"```json series\n(.*?)\n```", re.S)
 
-SOURCES = ("ssb", "norges_bank")
+SOURCES = ("ssb", "norges_bank", "nav")
 _REQUIRED = {
     "ssb": ("table", "selection"),
     "norges_bank": ("flow", "key"),
+    "nav": ("table", "selection"),   # table: NAV's file code (HL050); selection: sheet and row
 }
 
 
@@ -53,6 +54,15 @@ class Series:
     # Monthly series: month M is published between these days of month M+1 (inclusive).
     # Used to infer a missing period (D14): inside the window both months are checked.
     release_window: tuple | None = None
+    # Months after M in which month M is published: 1 for SSB, 0 for NAV, which
+    # publishes a month's figures late in that same month (D20).
+    release_month_offset: int = 1
+    # Breaks in the series: [["YYYY-MM", "YYYY-MM"], ...]. A change between two
+    # months is not computed when either month is inside a break (D20).
+    breaks: tuple = ()
+
+    def in_break(self, month: str) -> bool:
+        return any(lo <= month <= hi for lo, hi in self.breaks)
 
     def segments(self, start: str, end: str) -> list[tuple[str, str, str, dict]]:
         """Split a YYYY-MM range into (start, end, table, selection) per source table."""
@@ -74,6 +84,8 @@ class Series:
         if self.source == "ssb":
             sel = ", ".join(f"{k}={v}" for k, v in self.selection.items())
             return f"SSB table {self.table} ({sel})"
+        if self.source == "nav":
+            return f"NAV table {self.table} (row {self.selection['row']!r})"
         return f"Norges Bank {self.flow}/{self.key}"
 
 
@@ -115,7 +127,19 @@ def load(path: Path | None = None) -> dict[str, Series]:
                 raise LedgerError(f"series {sid}: release_window must be [first_day, last_day] "
                                   "on a monthly series")
             rw = tuple(rw)
-        spec = dict(spec, history=tuple(hist), release_window=rw)
+        off = spec.get("release_month_offset", 1)
+        if off not in (0, 1):
+            raise LedgerError(f"series {sid}: release_month_offset must be 0 or 1")
+        brk = spec.get("breaks", [])
+        if not all(isinstance(b, list) and len(b) == 2 and all(re.fullmatch(r"\d{4}-\d{2}", str(x)) for x in b)
+                   and b[0] <= b[1] for b in brk):
+            raise LedgerError(f"series {sid}: breaks must be [[\"YYYY-MM\", \"YYYY-MM\"], ...]")
+        if source == "nav":
+            sel = spec.get("selection") or {}
+            if not (isinstance(sel.get("sheet"), list) and sel["sheet"] and isinstance(sel.get("row"), str)):
+                raise LedgerError(f"series {sid}: NAV selection needs sheet (list of words) and row")
+        spec = dict(spec, history=tuple(hist), release_window=rw,
+                    breaks=tuple(tuple(b) for b in brk))
         try:
             out[sid] = Series(id=sid, **spec)
         except TypeError as e:

@@ -43,15 +43,18 @@ def period_start(period: str) -> date:
     return date(int(period), 1, 1)
 
 
-def infer_monthly(published: date, window: tuple[int, int] | None = None) -> list[str]:
+def infer_monthly(published: date, window: tuple[int, int] | None = None,
+                  offset: int = 1) -> list[str]:
     """Candidate months for a monthly figure quoted without a period (D14).
 
-    `window` is (first_day, last_day) of month M+1 in which month M is published
-    (ledger `release_window`). Before the window, the latest published month is
-    M-2; inside it, either could be meant, so both are checked; after it, M-1 (B42).
+    `window` is (first_day, last_day) of month M+offset in which month M is
+    published (ledger `release_window`, `release_month_offset`). With offset 1
+    (SSB), before the window the latest published month is M-2; inside it, either
+    could be meant, so both are checked; after it, M-1 (B42). NAV publishes in
+    the month itself (offset 0, D20).
     """
     first, last_day = window or DEFAULT_RELEASE_WINDOW
-    last = add_months(month_of(published), -1)
+    last = add_months(month_of(published), -offset)
     if published.day < first:
         return [add_months(last, -1)]
     if published.day <= last_day:

@@ -32,10 +32,11 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
 | `indicators.prices_generic` | headline KPI; monthly vs 12-month is ambiguous unless a measure phrase is found (D12) |
 | `out_of_scope` | claim is `out_of_scope`, named by its key (D16) |
 | `out_of_scope.sub_index` | food, electricity, rent, fuel: part of KPI, not KPI itself, so out of scope; **only when** the claim names no overall-inflation word ("prisveksten falt, trukket ned av strømprisene" is still KPI) (B25) |
-| `indicators.unemployment` | unemployment rate, AKU (D16): checked against SSB's trend and the seasonally adjusted 3-month average, trend first (D4, B41). With no AKU word, a value that matches neither is `cannot_verify`, since it may be NAV's registered rate (B43) |
-| `indicators.unemployment_aku` | names the AKU source, so a value that matches neither reading is `mismatched` (B43) |
+| `indicators.unemployment` | unemployment rate (D16). With no source word, checked against AKU (trend, then the seasonally adjusted 3-month average) and NAV's registered rate; matched if any fits (D4, B41, D20) |
+| `indicators.unemployment_aku` | names the AKU source: AKU only (B43) |
+| `indicators.unemployment_nav` | names NAV's registered unemployment: NAV only (D20). A claim the extractor put out of scope for this reason is brought back in scope when it has a percent |
 | `indicators.unemployment_trend` / `unemployment_3mma` | picks that one AKU series instead of both (B41) |
-| `out_of_scope.registered_unemployment` | NAV's registered unemployment: out of scope until NAV is added (D16) |
+| `out_of_scope.jobseekers` | partly unemployed and all job seekers ("delvis ledige", "arbeidssøkere"): a different NAV figure, out of scope (D20) |
 | `out_of_scope_regex.unemployment_group` | unemployment for a group ("ledigheten blant unge", "ungdomsledigheten"), not the total (B43) |
 | `record_words` | with no number: `no_figure` (D13) |
 
@@ -123,6 +124,12 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
       "aku", "aku-ledighet", "aku-ledigheten", "aku-tallene", "arbeidskraftundersøkelsen",
       "arbeidskraftundersøkelse", "labour force survey"
     ],
+    "unemployment_nav": [
+      "registrert ledighet", "registrerte ledigheten", "registrert arbeidsledighet",
+      "registrerte arbeidsledigheten", "registrert arbeidsledige", "registrerte arbeidsledige",
+      "registrert helt ledige", "helt ledige", "nav", "nav-tall", "nav-tallene",
+      "registered unemployment"
+    ],
     "unemployment_trend": ["trend", "trenden", "trendtall", "trendtallet", "trendtallene"],
     "unemployment_3mma": [
       "sesongjustert", "sesongjusterte", "glidende gjennomsnitt", "tremåneders", "tre måneders",
@@ -130,10 +137,9 @@ Code reads the `json phrases` block below. Edit it here and nowhere else.
     ]
   },
   "out_of_scope": {
-    "registered_unemployment": [
-      "registrert ledighet", "registrerte ledigheten", "registrert arbeidsledighet",
-      "registrerte arbeidsledigheten", "registrert arbeidsledige", "registrerte arbeidsledige",
-      "helt ledige", "nav", "registered unemployment"
+    "jobseekers": [
+      "delvis ledige", "helt og delvis ledige", "arbeidssøkere", "arbeidssøkerne",
+      "arbeidssøkere på tiltak", "job seekers"
     ],
     "gdp": ["bnp", "bruttonasjonalprodukt", "bruttonasjonalproduktet", "gdp"],
     "wage_growth": ["lønnsvekst", "lønnsveksten", "wage growth"],

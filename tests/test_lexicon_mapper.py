@@ -81,8 +81,8 @@ class ReviewTest(unittest.TestCase):
         self.assertEqual(c["measure"], "change")
 
     def test_out_of_scope_words(self):
-        c = review(claim("Den registrerte arbeidsledigheten var 2,1 prosent", indicator="unemployment"))
-        self.assertEqual((c["status"], c["indicator"]), ("out_of_scope", "registered_unemployment"))
+        c = review(claim("Antall helt og delvis ledige var 3,1 prosent", indicator="unemployment"))
+        self.assertEqual((c["status"], c["indicator"]), ("out_of_scope", "jobseekers"))
         c = review(claim("BNP steg 0,4 prosent", indicator="kpi"))
         self.assertEqual((c["status"], c["indicator"]), ("out_of_scope", "gdp"))
 
@@ -93,6 +93,18 @@ class ReviewTest(unittest.TestCase):
         self.assertIn("unemployment_source_unnamed", c["labels"])
         c = review(claim("AKU-ledigheten var 4,5 prosent", indicator="unemployment", measure="level"))
         self.assertNotIn("unemployment_source_unnamed", c["labels"])
+
+    def test_nav_registered_unemployment_is_in_scope(self):
+        # D20: the extractor may still put NAV's rate out of scope; a percent brings it back.
+        c = review(claim("Den registrerte arbeidsledigheten var 2,0 prosent", status="out_of_scope",
+                         indicator="other", other_indicator="registered_unemployment", measure="level"))
+        self.assertEqual((c["status"], c["indicator"], c["other_indicator"]),
+                         ("checkable", "unemployment", None))
+        self.assertNotIn("unemployment_source_unnamed", c["labels"])
+        # A count of people is not a rate: it stays out of scope.
+        c = review(claim("59 142 helt ledige", status="out_of_scope", indicator="other",
+                         unit=None, measure=None, stated_value="59 142"))
+        self.assertEqual(c["status"], "out_of_scope")
 
     def test_unemployment_for_a_group_is_out_of_scope(self):
         for text in ("Ledigheten blant unge var 9,1 prosent", "Ungdomsledigheten steg til 9,1 prosent"):
@@ -141,6 +153,17 @@ class MapperTest(unittest.TestCase):
         self.assertEqual(self.m("Kjerneinflasjonen var 3,0 %", indicator="kpi_jae"), ["kpi_jae_12m"])
         self.assertEqual(self.m("Styringsrenten er 4,5 %", indicator="policy_rate", measure="level"),
                          ["policy_rate"])
+
+    def test_unemployment_source_words_pick_the_series(self):
+        u = dict(indicator="unemployment", measure="level")
+        self.assertEqual(self.m("Arbeidsledigheten var 4,6 %", **u),
+                         ["aku_trend", "aku_3mma", "nav_registered"])        # D4, D20
+        self.assertEqual(self.m("AKU-ledigheten var 4,6 %", **u), ["aku_trend", "aku_3mma"])
+        self.assertEqual(self.m("Trendtallet for ledigheten var 4,6 %", **u), ["aku_trend"])
+        self.assertEqual(self.m("Den registrerte ledigheten var 2,0 %", **u), ["nav_registered"])
+        self.assertEqual(self.m("Andelen helt ledige var 2,0 %", **u), ["nav_registered"])
+        # Both sources named: AKU wins, NAV is context ("mot NAVs 2,0").
+        self.assertEqual(self.m("AKU-ledigheten var 4,6 %, mot NAVs 2,0 %", **u), ["aku_trend", "aku_3mma"])
 
     def test_unmapped_is_explained(self):
         ids, note = map_claim(review(claim("KPI-JAE steg 0,2 prosent fra forrige måned",
@@ -196,7 +219,8 @@ class PrepareTest(unittest.TestCase):
         self.assertEqual([m["series_id"] for m in out[0]["mappings"]], ["kpi_12m", "kpi_jae_12m"])
         self.assertEqual((out[1]["status"], out[1]["mappings"]), ("ambiguous", []))
         self.assertIn("unmapped", out[1]["labels"])
-        self.assertEqual([m["series_id"] for m in out[2]["mappings"]], ["aku_trend", "aku_3mma"])
+        self.assertEqual([m["series_id"] for m in out[2]["mappings"]],
+                         ["aku_trend", "aku_3mma", "nav_registered"])
         maps = [e for e in log.events if e["stage"] == "map"]
         self.assertEqual([e["claim_id"] for e in maps], ["c1", "c1", "c1"])
         self.assertEqual(maps[0]["detail"]["claim_status"], "checkable")

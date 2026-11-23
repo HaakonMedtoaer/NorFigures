@@ -314,7 +314,7 @@ The README's first screen shows an animation of a run instead of a terminal reco
 ## 15. Out of scope and later ideas
 
 - More indicators: unemployment (AKU) first, right after the MVP (D16); then GDP, wage growth, house prices.
-- NAV as a second source for registered unemployment.
+- ~~NAV as a second source for registered unemployment.~~ Done 2026-11-23 by scraping its files (D20).
 - First-published vintage checking, for claims made before a revision.
 - A full web UI or browser extension.
 - PDF and Word document input.

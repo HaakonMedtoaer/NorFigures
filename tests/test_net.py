@@ -8,8 +8,31 @@ from norfigures.net import Client, HostNotAllowed, RecordingMissing, check_url
 
 
 class AllowlistTest(unittest.TestCase):
-    def test_allowed_hosts_are_exactly_the_two_official_apis(self):
-        self.assertEqual(net.ALLOWED_HOSTS, {"data.ssb.no", "data.norges-bank.no"})
+    def test_allowed_hosts_are_exactly_the_official_sources(self):
+        self.assertEqual(net.ALLOWED_HOSTS, {"data.ssb.no", "data.norges-bank.no", "www.nav.no"})
+
+    def test_nav_is_limited_to_statistics_pages_and_file_downloads(self):
+        # D20: www.nav.no serves far more than data, so only two path prefixes pass.
+        ok = ["https://www.nav.no/no/nav-og-samfunn/statistikk/arbeidssokere-og-stillinger-statistikk/helt-ledige",
+              "https://www.nav.no/_/attachment/download/9356f88f:9736da86/202610_HL050%20Helt.xlsx"]
+        for url in ok:
+            with self.subTest(url=url):
+                self.assertEqual(check_url(url), "www.nav.no")
+        bad = ["https://www.nav.no/",
+               "https://www.nav.no/minside",
+               "https://www.nav.no/no/person/arbeid",
+               "https://www.nav.no/no/nav-og-samfunn/statistikk/../../../minside",
+               "https://www.nav.no/no/nav-og-samfunn/statistikk/%2e%2e/%2e%2e/minside",
+               "https://www.nav.no/no/nav-og-samfunn/statistikk%2f..%2fminside",
+               "https://www.nav.no/_/attachment/download/../../minside",
+               "https://nav.no/no/nav-og-samfunn/statistikk/",
+               "https://login.nav.no/no/nav-og-samfunn/statistikk/"]
+        for url in bad:
+            with self.subTest(url=url), self.assertRaises(HostNotAllowed):
+                check_url(url)
+
+    def test_path_rule_does_not_touch_the_api_hosts(self):
+        self.assertEqual(check_url("https://data.ssb.no/anything"), "data.ssb.no")
 
     def test_accepts_official_hosts(self):
         self.assertEqual(check_url("https://data.ssb.no/api/pxwebapi/v2/tables"), "data.ssb.no")
@@ -70,6 +93,40 @@ class ReadOnlyTest(unittest.TestCase):
             for lib in ("urllib.request", "http.client", "socket", "requests"):
                 with self.subTest(file=path.name, lib=lib):
                     self.assertNotIn(f"import {lib}", text)
+
+
+class BinaryBodyTest(unittest.TestCase):
+    def test_binary_file_round_trips_through_a_recording(self):
+        tmp = Path(tempfile.mkdtemp())
+        url = "https://www.nav.no/_/attachment/download/a:b/202610_HL050.xlsx"
+        blob = bytes(range(256)) * 4
+        Client("record", recordings_dir=tmp)._save(
+            net.Response(url, 200, "", "2026-11-23T00:00:00Z", False, content=blob))
+        got = Client("replay", recordings_dir=tmp).get(url)
+        self.assertEqual((got.content, got.body, got.replayed), (blob, "", True))
+
+    def test_live_binary_and_text_bodies(self):
+        for ctype, raw, want_body, want_content in [
+                ("application/json", b'{"a": 1}', '{"a": 1}', None),
+                ("text/html", "<p>ø</p>".encode(), "<p>ø</p>", None),
+                ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", b"PK", "", b"PK")]:
+            fake = mock.MagicMock()
+            r = fake.__enter__.return_value
+            r.geturl.return_value = "https://data.ssb.no/x"
+            r.read.return_value = raw
+            r.status = 200
+            r.headers.get_content_type.return_value = ctype
+            with self.subTest(ctype=ctype), mock.patch("urllib.request.urlopen", return_value=fake):
+                got = Client("live").get("https://data.ssb.no/x")
+                self.assertEqual((got.body, got.content), (want_body, want_content))
+
+    def test_oversized_body_is_refused(self):
+        fake = mock.MagicMock()
+        r = fake.__enter__.return_value
+        r.geturl.return_value = "https://data.ssb.no/x"
+        r.read.return_value = b"x" * (net.MAX_BODY_BYTES + 1)
+        with mock.patch("urllib.request.urlopen", return_value=fake), self.assertRaises(net.FetchError):
+            Client("live").get("https://data.ssb.no/x")
 
 
 class ReplayTest(unittest.TestCase):

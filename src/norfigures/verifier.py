@@ -39,6 +39,9 @@ def _fetch_detail(s: Series, start: str, end: str, obs: list[Observation]) -> di
     if s.source == "ssb":
         tables = list(dict.fromkeys(o.dims.get("_table") for o in obs if o.dims.get("_table")))
         ref = "table " + " + ".join(tables or [s.table])
+    elif s.source == "nav":
+        files = list(dict.fromkeys(o.dims.get("file") for o in obs if o.dims.get("file")))
+        ref = "table " + s.table + (" (" + ", ".join(files) + ")" if files else "")
     else:
         ref = f"{s.flow}/{s.key}"
     return {"series_id": s.id, "source": s.source, "ref": ref, "concept": s.concept,
@@ -219,7 +222,7 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
             continue
         if candidates is None:
             if s.frequency == "M":
-                plist = periods.infer_monthly(published, s.release_window)
+                plist = periods.infer_monthly(published, s.release_window, s.release_month_offset)
             else:
                 plist = [published.isoformat()]
         else:
@@ -247,12 +250,9 @@ def verify_claim(claim: Claim, run: Run, published: date | None, today: date) ->
     res.period = res.chosen.period if res.chosen else None
 
     _decide(res, run)
-    if res.verdict == MISMATCHED and "unemployment_source_unnamed" in claim.labels:
-        # "Ledigheten var 2,1 prosent" may be NAV's registered rate, which is not
-        # covered yet; without an AKU word, a mismatch would be a guess (D16, B43).
-        res.verdict = CANNOT_VERIFY
-        res.notes.append("Does not match AKU, and the text does not say AKU: it may be NAV's "
-                         "registered unemployment, which is not covered yet.")
+    # B43's "cannot verify" for an unsourced unemployment figure is gone: NAV's
+    # registered rate is now one of the readings, so a figure that fits neither AKU
+    # nor NAV is a mismatch (D20).
     return res
 
 
@@ -277,8 +277,13 @@ def _read(claim: Claim, s: Series, period: str, run: Run) -> Reading:
         # Change in the rate itself, in points (B27): this month's rate minus last month's.
         month = period if k == "month" else period[:7]
         prev = periods.add_months(month, -1)
-        obs = run.fetch(s, prev, month, claim.id, same_table=True)
         r = Reading(s.id, month, "change")
+        if s.in_break(prev) or s.in_break(month):
+            # NAV: a new register broke the series in April to July 2025 (D20).
+            r.note = (f"{s.id}: the series has a break that covers {prev} or {month}; "
+                      "a change across it is not comparable")
+            return r
+        obs = run.fetch(s, prev, month, claim.id, same_table=True)
         if len(obs) == 2 and obs[0].period == prev and obs[1].period == month:
             r.observations = [obs[0], obs[1]]
             r.official_value = obs[1].value - obs[0].value
