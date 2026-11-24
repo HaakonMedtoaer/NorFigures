@@ -1,0 +1,31 @@
+<!doctype html>
+<!--
+  Source of docs/social-preview.png, the repo's GitHub social preview (1280x640).
+  It loads run.svg, locks its dark theme and freezes the animation on its last frame.
+  Rebuild after run.svg changes, from the repo root:
+    chrome --headless=new --allow-file-access-from-files --hide-scrollbars
+      --window-size=1280,640 --virtual-time-budget=3000
+      --screenshot=docs/social-preview.png file:///<repo>/docs/social-preview.html
+  Then upload it under Settings > General > Social preview (GitHub has no API for it).
+-->
+<html><head><meta charset="utf-8"><title>NorFigures social preview</title><style>
+html,body{margin:0;width:1280px;height:640px;background:#f3f2ee;overflow:hidden}
+body{display:flex;align-items:center;gap:36px;padding:0 48px;box-sizing:border-box;font-family:"Segoe UI",Helvetica,Arial,sans-serif;color:#0b0b0b}
+.l{width:300px;flex:none}
+h1{font-size:52px;margin:0 0 18px;letter-spacing:-.01em}
+p{font-size:21px;line-height:1.4;margin:0 0 18px;color:#3a3936}
+.rule{font-size:19px;font-weight:600;color:#0f766e;margin-top:26px}
+.r{flex:none;width:860px;height:490px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.08))}
+</style></head><body>
+<div class="l"><h1>NorFigures</h1>
+<p>Checks Norwegian economic figures in ordinary text against SSB, Norges Bank and NAV.</p>
+<p class="rule">The AI interprets.<br>The source verifies.</p></div>
+<div class="r" id="run"></div>
+<script>
+fetch("run.svg").then(r => r.text()).then(svg => {
+  document.getElementById("run").innerHTML =
+    svg.replace("@media (prefers-color-scheme: dark)", "@media all");
+  document.getAnimations().forEach(a => { a.pause(); a.currentTime = 14700; });
+});
+</script>
+</body></html>
