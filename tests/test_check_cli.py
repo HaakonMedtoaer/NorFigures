@@ -79,6 +79,15 @@ class OutputTest(unittest.TestCase):
         self.assertIn("MISMATCHED", out)
         self.assertIn("Claims found: 3 | matched: 0 | mismatched: 2 | could not verify: 1", out)
 
+    def test_readme_example_file(self):
+        # examples/memo.txt is the README's quick start; it must stay the worked example.
+        memo = CASES_DIR.parents[1] / "examples" / "memo.txt"
+        case = json.loads((CASES_DIR / "20_spec_worked_example.json").read_text(encoding="utf-8"))
+        self.assertEqual(memo.read_text(encoding="utf-8").strip(), case["text"])
+        code, out, _ = run("check", str(memo), "--published", "2026-11-15", "--offline", "--log", "none")
+        self.assertEqual(code, 1)
+        self.assertIn("Claims found: 3 | matched: 0 | mismatched: 2 | could not verify: 1", out)
+
     def test_json_output_keeps_precision_and_adds_up(self):
         code, out, _ = run("check", "--claims", claims_file("20_spec_worked_example"),
                            "--published", "2026-11-15", "--offline", "--format", "json", "--log", "none")

@@ -336,7 +336,7 @@ The README's first screen shows an animation of a run instead of a terminal reco
 
 ## 18. What we discovered during the build
 
-The MVP works as planned: the full loop passes all 20 test cases on real Claude Haiku 5.5 output, at about $0.0006 per check. Sections 1 to 17 are the original plan, left as written. Building it turned up the findings below, and each one changed the plan for the reason given. The Ref column points to `docs/decisions.md`.
+The MVP works as planned: the full loop passes all 20 test cases on real Claude Haiku 5.5 output, at about $0.0006 per check on those short texts (about $0.0014 per text once the long articles were added; see the README). Sections 1 to 17 are the original plan, left as written. Building it turned up the findings below, and each one changed the plan for the reason given. The Ref column points to `docs/decisions.md`.
 
 | Date | Area | What we found | What we changed | Ref |
 | --- | --- | --- | --- | --- |

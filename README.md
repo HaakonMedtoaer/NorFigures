@@ -15,21 +15,24 @@ from recorded responses); only the timing is staged. Made from the run log by
 `python -m norfigures.animation`.*
 
 ```text
-$ norfigures check memo.txt --published 2026-11-15
+$ python -m norfigures check examples/memo.txt --published 2026-11-15 --offline
 
 #  Claim                                   Stated  Official  Verdict                                 Source
 -  --------------------------------------  ------  --------  --------------------------------------  ----------------------------------------------------
-1  Inflasjonen var 3,1 % i oktober.        3.1     3.6       MISMATCHED                              SSB, kpi_12m, 2026-10, table 14706
-2  holdt styringsrenten på 4,0 %           4.0     4.5       MISMATCHED                              Norges Bank, policy_rate, 2026-11-13, IR/B.KPRA.SD.R
-3  venter at kronen svekkes til 12,00 mo…  12.00   n/a       CANNOT VERIFY (forecast not checkable)  none
+1  Inflasjonen var 3,1 % i oktober         3.1     3.6       MISMATCHED                              SSB, kpi_12m, 2026-10, table 14706
+2  Norges Bank holdt styringsrenten på 4…  4.0     4.5       MISMATCHED                              Norges Bank, policy_rate, 2026-11-13, IR/B.KPRA.SD.R
+3  analytikerne venter at kronen svekkes…  12.00   n/a       CANNOT VERIFY (forecast not checkable)  none
 
 Notes:
-1. [ambiguous_measure] Headline CPI, 12-month change, 2026-10: 3.6 (does not match). CPI-ATE (core),
-   12-month change, 2026-10: 2.7 (does not match).
+1. [measure_from_rules, ambiguous_measure] Measure set to '12_month_change' by the mapping rules
+   (D12); the extractor said 'level'. Headline CPI, 12-month change, 2026-10: 3.6 (does not match).
+   CPI-ATE (core), 12-month change, 2026-10: 2.7 (does not match).
 2. [period_inferred] no observation on 2026-11-15; using the latest one before it, 2026-11-13.
 3. [forecast_not_checkable] Forecast or expectation; published data cannot confirm it.
 
 Claims found: 3 | matched: 0 | mismatched: 2 | could not verify: 1
+Extractor: claude-haiku-5-5 (replayed), 8290 in / 904 out tokens, about $0.0013
+(offline: official values replayed from recorded API responses)
 ```
 
 Exit code 1: at least one figure is wrong. The official values above are real
@@ -44,23 +47,27 @@ and code refuses to report one that didn't.
 
 ## Quick start
 
-The core needs Python 3.10+ and nothing else. This runs the example above
-offline, from recorded responses, with no key and no installs:
+The core needs Python 3.10+ and no other packages. This runs the example above
+offline, from recorded responses, with no API key, in any shell:
 
 ```bash
-git clone https://github.com/HaakonMedtoaer/NorFigures.git && cd NorFigures
-python -c "import json; c = json.load(open('tests/cases/20_spec_worked_example.json', encoding='utf-8')); open('memo.txt', 'w', encoding='utf-8').write(c['text'])"
-PYTHONPATH=src python -m norfigures check memo.txt --published 2026-11-15 --offline
+git clone https://github.com/HaakonMedtoaer/NorFigures.git
+cd NorFigures
+pip install -e .
+python -m norfigures check examples/memo.txt --published 2026-11-15 --offline
 ```
 
-On Windows PowerShell, set the path with `$env:PYTHONPATH = "src"` and run the
-last line without the `PYTHONPATH=src` prefix.
+`pip install -e .` installs only NorFigures itself. To skip it, run the last
+line with `src` on the path instead (`PYTHONPATH=src` in bash,
+`$env:PYTHONPATH = "src"` in PowerShell).
+
+Or skip the install entirely: [replay the example run in your browser](https://haakonmedtoaer.github.io/NorFigures/flowmap.html).
 
 To check your own text, install the AI step and set an
 [Anthropic API key](https://platform.claude.com/):
 
 ```bash
-pip install -e '.[agents]'
+pip install -e ".[agents]"
 export ANTHROPIC_API_KEY=...
 norfigures check my-text.txt --published 2026-11-15
 ```
@@ -123,11 +130,13 @@ red. Click a box to see what went in and came out for a claim, including the
 exact query.
 
 ```bash
-norfigures check memo.txt --published 2026-11-15 --offline --flow   # follow a run live
+norfigures check examples/memo.txt --published 2026-11-15 --offline --flow   # follow a run live
 norfigures flow docs/example-run.jsonl                                # replay a saved run
 ```
 
 Both serve the page on 127.0.0.1 only; the page never controls the pipeline.
+The saved run is also [online](https://haakonmedtoaer.github.io/NorFigures/flowmap.html),
+as a static page on GitHub Pages.
 
 ## What Claude wrote and what I decided
 
@@ -187,7 +196,7 @@ Claude Code wrote the code. I wrote the spec and made the calls; each one is in
 python -m unittest
 ```
 
-180 tests, fully offline: 20 fixture cases built on real 2026 data (correct,
+Over 190 tests, fully offline: 20 fixture cases built on real 2026 data (correct,
 wrong, ambiguous, forecasts, mapping traps, no figure), 10 real headlines from
 SSB's KPI and AKU releases, 5 long real texts (SSB release articles and Norges
 Bank press releases, 61 claims by hand, where any mismatch is a false alarm),
