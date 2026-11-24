@@ -66,6 +66,14 @@ class AnimationTest(unittest.TestCase):
         self.assertNotIn("href", svg)
 
 
+    def test_page_intro_quotes_the_example_text(self):
+        # The intro strip on GitHub Pages quotes the memo behind example-run.jsonl.
+        page = (EXAMPLE_LOG.parent / "flowmap.html").read_text(encoding="utf-8")
+        memo = re.search(r'<p lang="nb" id="memo">(.*?)</p>', page).group(1)
+        case = json.loads(animation.EXAMPLE_CASE.read_text(encoding="utf-8"))
+        self.assertEqual(memo, case["text"])
+
+
 class FlowServerTest(unittest.TestCase):
     def setUp(self):
         self.log = Path(tempfile.mkdtemp()) / "run.jsonl"

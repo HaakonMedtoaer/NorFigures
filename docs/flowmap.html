@@ -86,6 +86,12 @@
   .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-2); padding: 4px 0 0; }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
   #msg { color: var(--critical); font-weight: 600; }
+  #intro { margin: 0 24px 12px; padding: 12px 16px; border-radius: 10px; background: var(--panel); max-width: 980px; }
+  #intro p { margin: 0 0 8px; }
+  #intro p:last-child { margin-bottom: 0; }
+  #intro blockquote { margin: 0 0 8px; padding: 6px 12px; border-left: 3px solid var(--ai); background: var(--surface); border-radius: 0 6px 6px 0; }
+  #intro blockquote p { margin: 0; }
+  #intro a { color: var(--code); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -94,6 +100,18 @@
   <span class="muted" id="runinfo">No run loaded.</span>
   <span id="msg" role="status"></span>
 </header>
+<section id="intro" hidden aria-label="About this page">
+  <p><strong>NorFigures checks economic figures in a Norwegian text against SSB, Norges Bank and NAV.</strong>
+     This is a replay of one real run. An AI model reads the text and says what each sentence claims;
+     every official number comes from the sources, never from the model.</p>
+  <blockquote>
+    <p lang="nb" id="memo">Inflasjonen var 3,1 % i oktober. Norges Bank holdt styringsrenten på 4,0 %, og analytikerne venter at kronen svekkes til 12,00 mot euro neste år.</p>
+    <p class="muted">In English: inflation was 3.1 % in October. Norges Bank held the policy rate at 4.0 %, and analysts expect the krone to weaken to 12.00 per euro next year.</p>
+  </blockquote>
+  <p class="muted">The run plays by itself; press Restart to watch from the start, or Step to go one event at a time.
+     Click a claim and then a box to see what went in and came out, including the exact query.</p>
+  <p><a href="https://github.com/HaakonMedtoaer/NorFigures">View the code on GitHub</a></p>
+</section>
 <div class="controls">
   <button id="play" type="button">Pause</button>
   <button id="step" type="button">Step</button>
@@ -387,6 +405,9 @@ function init() {
   const q = new URLSearchParams(location.search);
   S.live = q.get("live") === "1";
   S.logUrl = q.get("log") || "example-run.jsonl";
+  // The intro describes the saved example only; a live run or another log has its own text.
+  const intro = document.getElementById("intro");
+  intro.hidden = S.live || q.has("log");
   document.getElementById("play").onclick = () => {
     S.playing = !S.playing;
     document.getElementById("play").textContent = S.playing ? "Pause" : "Play";
@@ -401,12 +422,12 @@ function init() {
   document.getElementById("speed").onchange = e => { S.speed = Number(e.target.value); };
   document.getElementById("file").onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
-    try { S.live = false; start(parseLog(await f.text())); message(""); } catch (err) { message(`${f.name}: ${err.message}`); }
+    try { S.live = false; intro.hidden = true; start(parseLog(await f.text())); message(""); } catch (err) { message(`${f.name}: ${err.message}`); }
   };
   document.addEventListener("dragover", e => e.preventDefault());
   document.addEventListener("drop", async e => {
     e.preventDefault(); const f = e.dataTransfer.files[0]; if (!f) return;
-    try { S.live = false; start(parseLog(await f.text())); message(""); } catch (err) { message(`${f.name}: ${err.message}`); }
+    try { S.live = false; intro.hidden = true; start(parseLog(await f.text())); message(""); } catch (err) { message(`${f.name}: ${err.message}`); }
   });
   if (q.get("claim")) S.selClaim = q.get("claim");
   if (q.get("box") && box(q.get("box"))) selectBox(q.get("box"));
